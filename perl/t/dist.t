@@ -35,9 +35,10 @@ sub fixture ($toolingrc)
 {
 	my $dir = tempdir( CLEANUP => 1 );
 
-	write_file( "$dir/.toolingrc",  $toolingrc );
-	write_file( "$dir/lib/Fix.pm",  "package Fix;\n1;\n" );
-	write_file( "$dir/lib/Fix.pod", "=pod\n\n=cut\n" );
+	write_file( "$dir/.toolingrc",     $toolingrc );
+	write_file( "$dir/lib/Fix.pm",     "package Fix;\n1;\n" );
+	write_file( "$dir/lib/Fix.pod",    "=pod\n\n=cut\n" );
+	write_file( "$dir/lib/App/Fix.pm", "package App::Fix;\n1;\n" );
 	write_file( "$dir/lib/Fix/Part.pm",
 		"package Fix::Part;\n1;\npackage Fix::Part::Inner;\n1;\n" );
 	write_file( "$dir/share/fix/data", "shared\n" );
@@ -263,6 +264,26 @@ for my $case ( sort keys %BAD ) {
 	my ( $exit, $output ) = run_in( $dir, '--version 1.0.0' );
 	isnt( $exit, 0, "$case exits non-zero" );
 	ok( !-d "$dir/build", "$case stages nothing" );
+}
+
+# A dist.module that no lib/ module declares dies before anything is
+# staged: PAUSE would grant no permission and index nothing.
+{
+	my $dir = fixture(<<'EOF');
+dist.name     Fix
+dist.module   Nope::Match
+dist.abstract a fixture without its lead module
+dist.author   Dick Olsson <hi@senzilla.io>
+dist.testdir  t/fix
+EOF
+	my ( $exit, $output ) = run_in( $dir, '--version 1.0.0' );
+	isnt( $exit, 0, 'a missing lead module exits non-zero' );
+	like(
+		$output,
+		qr/no module declares 'package Nope::Match;'/,
+		'and the error names the package'
+	);
+	ok( !-f "$dir/build/Fix-1.0.0.tar.gz", 'and no tarball ships' );
 }
 
 # A bad version dies before anything is staged.
