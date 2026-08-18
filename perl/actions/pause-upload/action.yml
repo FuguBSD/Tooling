@@ -1,0 +1,56 @@
+name: "Upload a distribution to PAUSE"
+description:
+  "Upload a Perl distribution tarball to PAUSE with cpan-upload, or skip cleanly
+  when no credentials are configured"
+
+# This is a canonical action of the FuguBSD repositories, shared like
+# setup-perl. A sibling repository references it as
+# FuguBSD/Tooling/perl/actions/pause-upload@main.
+#
+# The uploader is CPAN::Uploader's cpan-upload, installed from CPAN at
+# run time; no third-party action is involved. A repository without
+# PAUSE credentials skips the upload with a notice instead of failing:
+# the GitHub release must not depend on the CPAN one.
+
+inputs:
+  file:
+    description: "The distribution tarball to upload"
+    required: true
+  username:
+    description: "The PAUSE user name; empty skips the upload"
+    required: false
+    default: ""
+  password:
+    description: "The PAUSE password; empty skips the upload"
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Upload to PAUSE
+      shell: bash
+      env:
+        PAUSE_USERNAME: ${{ inputs.username }}
+        PAUSE_PASSWORD: ${{ inputs.password }}
+        FILE: ${{ inputs.file }}
+      run: |
+        if [ -z "$PAUSE_USERNAME" ] || [ -z "$PAUSE_PASSWORD" ]; then
+          echo "::notice::PAUSE credentials are not configured;" \
+            "skipping the CPAN upload"
+          exit 0
+        fi
+
+        test -f "$FILE"
+
+        sudo apt-get update
+        sudo apt-get install -y cpanminus
+        sudo cpanm --notest CPAN::Uploader
+
+        # The credentials go through a config file, not through argv:
+        # a process list must not show a password.
+        umask 077
+        printf 'user %s\npassword %s\n' \
+          "$PAUSE_USERNAME" "$PAUSE_PASSWORD" > "$HOME/.pause"
+        cpan-upload "$FILE"
+        rm -f "$HOME/.pause"

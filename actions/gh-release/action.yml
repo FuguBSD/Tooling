@@ -1,0 +1,52 @@
+name: "Create a GitHub release"
+description:
+  "Create a GitHub release for an existing tag with the gh CLI, and attach the
+  build artifacts"
+
+# This is a canonical action of the FuguBSD repositories, shared like
+# setup-perl. A sibling repository references it as
+# FuguBSD/Tooling/actions/gh-release@main.
+#
+# The gh CLI ships on the GitHub-hosted runners, so this action pulls
+# no third-party action and no external code. --verify-tag makes a
+# typo fail instead of minting a new tag.
+
+inputs:
+  tag:
+    description: "The existing tag to release, e.g. b75"
+    required: true
+  title:
+    description: "The release title"
+    required: true
+  body:
+    description: "The release notes, as Markdown"
+    required: false
+    default: ""
+  files:
+    description: "Whitespace-separated files to attach"
+    required: true
+  token:
+    description: "The token gh authenticates with"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Create the release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        TAG: ${{ inputs.tag }}
+        TITLE: ${{ inputs.title }}
+        BODY: ${{ inputs.body }}
+        FILES: ${{ inputs.files }}
+      run: |
+        # FILES is a whitespace-separated list on purpose: gh takes
+        # each attachment as its own argument, and a file name with a
+        # space has no business in a release asset.
+        # shellcheck disable=SC2086
+        gh release create "$TAG" \
+          --verify-tag \
+          --title "$TITLE" \
+          --notes "$BODY" \
+          $FILES

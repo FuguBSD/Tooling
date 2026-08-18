@@ -1,0 +1,4 @@
+# Dependencies of the Tooling repository itself. The synced scripts
+# and the tests run on core Perl; the lint and tidy gates need these.
+test cpan Perl::Critic
+test cpan Perl::Tidy

@@ -1,0 +1,104 @@
+name: "Perl: Release"
+
+# Reusable release workflow for the FuguBSD Perl distributions. A
+# consumer calls it from its own release.yml on a push of a
+# v<MAJOR>.<MINOR>.<PATCH> tag. The workflow runs in the caller's
+# repository: the checkout, the tests, the dist build, and the release
+# steps all operate on the caller's tree.
+#
+# The job binds the caller's `release` environment, which holds the
+# PAUSE_USERNAME and PAUSE_PASSWORD secrets. The caller must pass
+# `secrets: inherit` and must keep `permissions: contents: write`.
+# The PAUSE upload only runs when the caller sets `pause: true`.
+
+on:
+  workflow_call:
+    inputs:
+      dist:
+        description: "The distribution name, e.g. App-FuguVM"
+        required: true
+        type: string
+      name:
+        description: "The display name for the release title, e.g. FuguVM"
+        required: true
+        type: string
+      install-note:
+        description: "An extra installation paragraph for the release body"
+        required: false
+        type: string
+        default: ""
+      pause:
+        description: "Upload the tarball to PAUSE"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Perl
+        uses: FuguBSD/Tooling/perl/actions/setup-perl@main
+        with:
+          dependencies: test
+
+      - name: Run tests
+        run: make test
+
+      - name: Derive the version from the tag
+        id: version
+        run: |
+          tag="${{ github.ref_name }}"
+          if ! echo "$tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "release: tag '$tag' is not v<MAJOR>.<MINOR>.<PATCH>" >&2
+            exit 1
+          fi
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build the distribution tarball
+        run: |
+          make dist VERSION=${{ steps.version.outputs.version }}
+          # The stable name serves releases/latest/download/<dist>.tar.gz,
+          # the URL that the deps manifests of the consumers name.
+          cp build/${{ inputs.dist }}-${{ steps.version.outputs.version }}.tar.gz \
+            build/${{ inputs.dist }}.tar.gz
+
+      - name: Keep the tarball as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.dist }}-${{ steps.version.outputs.version }}
+          path:
+            build/${{ inputs.dist }}-${{ steps.version.outputs.version }}.tar.gz
+
+      - name: Release to GitHub
+        uses: FuguBSD/Tooling/actions/gh-release@main
+        with:
+          tag: ${{ github.ref_name }}
+          title: ${{ inputs.name }} ${{ steps.version.outputs.version }}
+          files:
+            build/${{ inputs.dist }}-${{ steps.version.outputs.version }}.tar.gz
+            build/${{ inputs.dist }}.tar.gz
+          token: ${{ github.token }}
+          body: |
+            ## Installation
+
+            ${{ inputs.install-note }}
+
+            ```sh
+            cpanm --notest ${{ inputs.dist }}-${{ steps.version.outputs.version }}.tar.gz
+            ```
+
+            See [INSTALL.md](https://github.com/${{ github.repository }}/blob/main/INSTALL.md) for full instructions.
+
+      - name: Release to PAUSE
+        if: inputs.pause
+        uses: FuguBSD/Tooling/perl/actions/pause-upload@main
+        with:
+          file:
+            build/${{ inputs.dist }}-${{ steps.version.outputs.version }}.tar.gz
+          username: ${{ secrets.PAUSE_USERNAME }}
+          password: ${{ secrets.PAUSE_PASSWORD }}

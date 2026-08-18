@@ -1,0 +1,36 @@
+name: "Perl: Build"
+
+# Reusable build workflow for the FuguBSD Perl distributions. A
+# consumer calls it from its own build.yml, which keeps the
+# workflow_run trigger on its Test workflow and the success gate.
+# Every merged commit proves that the dist still builds, and the
+# result stays on the workflow run as an artifact for inspection.
+# Nothing here releases: a release is a deliberate act, made by
+# pushing a v<MAJOR>.<MINOR>.<PATCH> tag.
+
+on:
+  workflow_call:
+    inputs:
+      dist:
+        description: "The distribution name, e.g. App-FuguVM"
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # The dist version comes from the latest v* tag.
+          fetch-depth: 0
+
+      - name: Build the distribution tarball
+        run: make dist
+
+      - name: Keep the tarball as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.dist }}-dist
+          path: build/${{ inputs.dist }}-*.tar.gz

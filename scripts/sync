@@ -1,0 +1,128 @@
+#!/usr/bin/env perl
+# ex:ts=8 sw=4:
+# $OpenBSD$
+#
+# Copyright (c) 2026 Dick Olsson <hi@senzilla.io>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+# sync: copy the shared tooling files into a consumer repository.
+#
+# usage: sync [--check]
+#
+# Run the script from the root of a consumer repository. It copies
+# every file under perl/sync/ of the Tooling checkout into the same
+# path of the consumer, with the file mode of the source. With
+# --check it changes nothing: it reports every file that is missing,
+# differs in content, or differs in the exec bit, and exits non-zero
+# when it found any. CI runs --check as the drift gate.
+#
+# The script resolves the Tooling root from its own location, so it
+# takes no argument. It refuses to run outside a consumer: the
+# consumer root must hold a .toolingrc file.
+#
+# Like scripts/deps, this script is bootstrap tooling: core modules
+# only, and v5.34 because macOS still ships perl 5.34.
+
+use v5.34;
+use warnings;
+use experimental 'signatures';
+
+use Cwd            qw(getcwd);
+use File::Find     ();
+use File::Path     qw(make_path);
+use File::Copy     qw(copy);
+use File::Spec     ();
+use File::Basename qw(dirname);
+use Getopt::Long   qw(GetOptions);
+
+my $check;
+GetOptions( 'check' => \$check ) or die "usage: sync [--check]\n";
+
+my $tooling = Cwd::abs_path(
+	File::Spec->catdir(
+		dirname( File::Spec->rel2abs(__FILE__) ),
+		File::Spec->updir
+	) );
+my $source = File::Spec->catdir( $tooling, 'perl', 'sync' );
+-d $source or die "sync: cannot find $source\n";
+
+my $target = getcwd();
+$target ne $tooling
+    or die "sync: run from a consumer repository, not from Tooling\n";
+-f File::Spec->catfile( $target, '.toolingrc' )
+    or die "sync: no .toolingrc in $target (run from a consumer root)\n";
+
+# _slurp($path):
+#	Whole file as bytes, or die.
+sub _slurp ($path)
+{
+	open my $fh, '<:raw', $path or die "sync: read $path: $!\n";
+	local $/ = undef;
+	my $content = <$fh>;
+	close $fh;
+
+	return $content;
+}
+
+my @manifest;
+File::Find::find( {
+		wanted => sub {
+			return unless -f $_;
+			push @manifest,
+			    File::Spec->abs2rel( $File::Find::name, $source );
+		},
+		no_chdir => 1,
+	},
+	$source
+);
+@manifest = sort @manifest;
+@manifest or die "sync: nothing to sync under $source\n";
+
+my @drift;
+for my $path (@manifest) {
+	my $from = File::Spec->catfile( $source, $path );
+	my $to   = File::Spec->catfile( $target, $path );
+	my $mode = ( stat $from )[2] & 0777;
+
+	if ($check) {
+		if ( !-f $to ) {
+			push @drift, "$path: missing";
+			next;
+		}
+		if ( _slurp($from) ne _slurp($to) ) {
+			push @drift, "$path: content differs";
+			next;
+		}
+		my $exec_from = $mode & 0111               ? 1 : 0;
+		my $exec_to   = ( ( stat $to )[2] & 0111 ) ? 1 : 0;
+		push @drift, "$path: exec bit differs"
+		    if $exec_from != $exec_to;
+		next;
+	}
+
+	my ( undef, $dir ) = File::Spec->splitpath($to);
+	make_path($dir);
+	copy( $from, $to ) or die "sync: copy $path: $!\n";
+	chmod $mode, $to or die "sync: chmod $path: $!\n";
+	say "synced $path";
+}
+
+if ($check) {
+	if (@drift) {
+		say STDERR "sync: drift against $tooling:";
+		say STDERR "  $_" for @drift;
+		exit 1;
+	}
+	say 'sync: no drift';
+}
