@@ -96,6 +96,7 @@ sub slurp ($path)
 dist.name        App-Fix
 dist.module      App::Fix
 dist.abstract    fix things with one tool
+dist.author      Dick Olsson <hi@senzilla.io>
 dist.exe         bin/fix
 dist.testdir     t/fix
 dist.share-extra scripts/ftp
@@ -156,6 +157,29 @@ qr{'share/fix/data' => '\$\(INST_LIB\)/auto/share/dist/App-Fix/fix/data'},
 	unlike( slurp("$dir/lib/Fix.pm"),
 		qr/\$VERSION/, 'the source module stays clean' );
 
+	# The META.json makes the PAUSE index. CPAN::Meta validated it
+	# at build time; here the load proves it parses, and the fields
+	# carry the .toolingrc identity.
+	require CPAN::Meta;
+	my $meta = eval { CPAN::Meta->load_file("$tree/META.json") };
+	ok( defined $meta, 'META.json ships and parses' ) or diag($@);
+	if ( defined $meta ) {
+		is( $meta->name,    'App-Fix', 'META names the dist' );
+		is( $meta->version, '1.2.3',   'META carries the version' );
+		is(
+			( $meta->authors )[0],
+			'Dick Olsson <hi@senzilla.io>',
+			'META carries the author'
+		);
+		my $requires =
+		    $meta->effective_prereqs->requirements_for( 'runtime',
+			'requires' );
+		ok( $requires->accepts_module( 'Net::SSH2', '0.5' ),
+			'META requires the prereqs' );
+		ok( $requires->accepts_module( 'perl', '5.036' ),
+			'META requires the perl floor' );
+	}
+
 	# The MANIFEST lists every file of the tree, itself included.
 	my @manifest = split /\n/, slurp("$tree/MANIFEST");
 	my @files;
@@ -184,6 +208,7 @@ qr{'share/fix/data' => '\$\(INST_LIB\)/auto/share/dist/App-Fix/fix/data'},
 dist.name     Fix
 dist.module   Fix
 dist.abstract a lean fixture
+dist.author   Dick Olsson <hi@senzilla.io>
 dist.testdir  t/fix
 dist.testdir  t/other
 EOF
@@ -210,6 +235,7 @@ EOF
 dist.name     Fix
 dist.module   Fix
 dist.abstract a lean fixture
+dist.author   Dick Olsson <hi@senzilla.io>
 dist.testdir  t/fix
 EOF
 	my ( $exit, $output ) = run_in($dir);
@@ -222,7 +248,9 @@ my %BAD = (
 	'a missing .toolingrc' => undef,
 	'an unknown dist key'  => "dist.name X\ndist.module X\n"
 	    . "dist.abstract x\ndist.typo y\n",
-	'a missing dist.name'    => "dist.module X\ndist.abstract x\n",
+	'a missing dist.name'   => "dist.module X\ndist.abstract x\n",
+	'a missing dist.author' => "dist.name X\ndist.module X\n"
+	    . "dist.abstract x\n",
 	'a duplicate single key' => "dist.name X\ndist.name Y\n"
 	    . "dist.module X\ndist.abstract x\n",
 	'a key without a value' => "dist.name\n",
@@ -243,6 +271,7 @@ for my $case ( sort keys %BAD ) {
 dist.name     Fix
 dist.module   Fix
 dist.abstract a lean fixture
+dist.author   Dick Olsson <hi@senzilla.io>
 dist.testdir  t/fix
 EOF
 	my ( $exit, $output ) = run_in( $dir, '--version nonsense' );
