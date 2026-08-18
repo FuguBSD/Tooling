@@ -35,13 +35,14 @@ sub fixture ($toolingrc)
 {
 	my $dir = tempdir( CLEANUP => 1 );
 
-	write_file( "$dir/.toolingrc",      $toolingrc );
-	write_file( "$dir/lib/Fix.pm",      "package Fix;\n1;\n" );
-	write_file( "$dir/lib/Fix.pod",     "=pod\n\n=cut\n" );
-	write_file( "$dir/lib/Fix/Part.pm", "package Fix::Part;\n1;\n" );
-	write_file( "$dir/share/fix/data",  "shared\n" );
-	write_file( "$dir/scripts/ftp",     "#!/bin/sh\n" );
-	write_file( "$dir/bin/fix",         "#!/usr/bin/env perl\n" );
+	write_file( "$dir/.toolingrc",  $toolingrc );
+	write_file( "$dir/lib/Fix.pm",  "package Fix;\n1;\n" );
+	write_file( "$dir/lib/Fix.pod", "=pod\n\n=cut\n" );
+	write_file( "$dir/lib/Fix/Part.pm",
+		"package Fix::Part;\n1;\npackage Fix::Part::Inner;\n1;\n" );
+	write_file( "$dir/share/fix/data", "shared\n" );
+	write_file( "$dir/scripts/ftp",    "#!/bin/sh\n" );
+	write_file( "$dir/bin/fix",        "#!/usr/bin/env perl\n" );
 	write_file( "$dir/t/fix/basic.t",
 		"use Test::More;\nok(1);\ndone_testing();\n" );
 	write_file( "$dir/t/other/extra.t",
@@ -138,6 +139,22 @@ qr{'share/fix/data' => '\$\(INST_LIB\)/auto/share/dist/App-Fix/fix/data'},
 		'the staged tests run from their directory'
 	);
 	unlike( $mfpl, qr{t/other}, 'an unlisted test directory stays out' );
+
+	# The version stamp: every package of every staged module gets
+	# our $VERSION, the source modules keep none, and the sidecars
+	# stay untouched.
+	like(
+		slurp("$tree/lib/Fix.pm"),
+		qr/^package Fix;\nour \$VERSION = '1\.2\.3';$/m,
+		'the staged module carries the version'
+	);
+	my @stamps =
+	    slurp("$tree/lib/Fix/Part.pm") =~ /^our \$VERSION = '1\.2\.3';$/mg;
+	is( scalar @stamps, 2, 'every package of one file gets a stamp' );
+	unlike( slurp("$tree/lib/Fix.pod"),
+		qr/\$VERSION/, 'a sidecar gets no stamp' );
+	unlike( slurp("$dir/lib/Fix.pm"),
+		qr/\$VERSION/, 'the source module stays clean' );
 
 	# The MANIFEST lists every file of the tree, itself included.
 	my @manifest = split /\n/, slurp("$tree/MANIFEST");
