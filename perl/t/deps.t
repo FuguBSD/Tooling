@@ -275,6 +275,93 @@ qr{^\+ \S+/ftp \S+/Fugu\.tar\.gz https://example\.org/dl/Fugu\.tar\.gz$}m,
 	like( $output, qr/cannot name the file/, 'and says why' );
 }
 
+# A bin line holds a command name and a URL. The script fetches the
+# file through scripts/ftp into ~/.local/bin and sets the execute
+# bit. {os} and {arch} in the URL become the platform words.
+{
+	my $manifest =
+	    "runtime bin scw https://example.org/dl/cli_2.0_{os}_{arch}\n";
+	my ( $exit, $output ) = run_in( fixture( 'Linux', $manifest ),
+		'--os Linux --arch x86_64 --dry-run runtime' );
+	is( $exit, 0, 'a bin line parses' );
+	like(
+		$output,
+		qr{^\+ mkdir -p \S+/\.local/bin$}m,
+		'the target directory is created'
+	);
+	like(
+		$output,
+qr{^\+ \S+/ftp \S+/\.local/bin/scw https://example\.org/dl/cli_2\.0_linux_amd64$}m,
+		'the placeholders become the platform words'
+	);
+	like(
+		$output,
+		qr{^\+ chmod 755 \S+/\.local/bin/scw$}m,
+		'the file gets the execute bit'
+	);
+}
+
+# The architecture aliases of Linux and Darwin map to the
+# release-asset spelling. A name with no alias passes through.
+{
+	my $dir =
+	    fixture( 'Darwin', "runtime bin x https://e.org/{os}_{arch}\n" );
+
+	my ( undef, $output ) =
+	    run_in( $dir, '--os Darwin --arch aarch64 --dry-run runtime' );
+	like(
+		$output,
+		qr{https://e\.org/darwin_arm64},
+		'aarch64 maps to arm64'
+	);
+
+	( undef, $output ) =
+	    run_in( $dir, '--os Darwin --arch arm64 --dry-run runtime' );
+	like( $output, qr{https://e\.org/darwin_arm64},
+		'arm64 passes through' );
+}
+
+# Binaries install last: after the packages and the CPAN modules.
+{
+	delete local $ENV{PERL_LOCAL_LIB_ROOT};
+
+	my $manifest =
+	      "runtime pkg alpha\n"
+	    . "runtime cpan Foo::Bar\n"
+	    . "runtime bin scw https://example.org/dl/scw-cli\n";
+	my ( $exit, $output ) = run_in(
+		fixture( 'OpenBSD', $manifest ),
+		'--os OpenBSD --dry-run runtime'
+	);
+	is( $exit, 0, 'a mixed manifest with a bin line parses' );
+	like(
+		$output,
+		qr{pkg_add alpha.*cpanm --notest Foo::Bar.*\.local/bin/scw}s,
+		'binaries install after packages and CPAN modules'
+	);
+}
+
+# A bin line without a URL is a format error, in every environment.
+{
+	my ( $exit, $output ) = run_in(
+		fixture( 'OpenBSD', "runtime bin scw\n" ),
+		'--os OpenBSD --dry-run runtime'
+	);
+	isnt( $exit, 0, 'a bin line without a URL exits non-zero' );
+	like( $output, qr/Invalid format/, 'and reports the bad line' );
+	like(
+		$output,
+		qr/<environment> bin <name> <url>/,
+		'and the expected shape'
+	);
+
+	( $exit, $output ) = run_in(
+		fixture( 'OpenBSD', "runtime pkg alpha\ndevelop bin scw\n" ),
+		'--os OpenBSD --dry-run runtime' );
+	isnt( $exit, 0,
+		'a bad bin line in an unselected environment still fails' );
+}
+
 # A malformed line in another environment still fails: the shell
 # version filtered before it validated. Thus the bad line stayed
 # hidden until someone ran that tier.
