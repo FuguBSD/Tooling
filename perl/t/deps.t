@@ -301,6 +301,75 @@ qr{^\+ \S+/ftp \S+/\.local/bin/scw https://example\.org/dl/cli_2\.0_linux_amd64$
 	);
 }
 
+# A bin line with an archive URL carries a third word: the file path
+# in the archive. The script fetches the archive, unpacks only that
+# file, and copies it into ~/.local/bin. The placeholders work in the
+# path too.
+{
+	my $manifest =
+	      "runtime bin gh "
+	    . "https://example.org/dl/gh_2.0_{os}_{arch}.tar.gz "
+	    . "gh_2.0_{os}_{arch}/bin/gh\n";
+	my ( $exit, $output ) = run_in( fixture( 'Linux', $manifest ),
+		'--os Linux --arch x86_64 --dry-run runtime' );
+	is( $exit, 0, 'a bin line with an archive parses' );
+	like(
+		$output,
+qr{^\+ \S+/ftp \S+/gh_2\.0_linux_amd64\.tar\.gz https://example\.org/dl/gh_2\.0_linux_amd64\.tar\.gz$}m,
+		'the archive downloads through scripts/ftp'
+	);
+	like(
+		$output,
+qr{^\+ tar -xzf \S+/gh_2\.0_linux_amd64\.tar\.gz -C \S+ gh_2\.0_linux_amd64/bin/gh$}m,
+		'tar unpacks only the named file'
+	);
+	like(
+		$output,
+		qr{^\+ cp \S+/gh_2\.0_linux_amd64/bin/gh \S+/\.local/bin/gh$}m,
+		'the file is copied into ~/.local/bin'
+	);
+	like(
+		$output,
+		qr{^\+ chmod 755 \S+/\.local/bin/gh$}m,
+		'the file gets the execute bit'
+	);
+}
+
+# A .zip archive unpacks with unzip.
+{
+	my $manifest =
+	      "runtime bin gh "
+	    . "https://example.org/dl/gh_2.0_macOS_{arch}.zip "
+	    . "gh_2.0_macOS_{arch}/bin/gh\n";
+	my ( $exit, $output ) = run_in( fixture( 'Darwin', $manifest ),
+		'--os Darwin --arch arm64 --dry-run runtime' );
+	is( $exit, 0, 'a bin line with a zip archive parses' );
+	like(
+		$output,
+qr{^\+ unzip -q \S+/gh_2\.0_macOS_arm64\.zip gh_2\.0_macOS_arm64/bin/gh -d \S+$}m,
+		'unzip unpacks only the named file'
+	);
+}
+
+# An archive URL without the file path is a format error, and so is
+# a file path with a plain URL.
+{
+	my ( $exit, $output ) = run_in(
+		fixture( 'Linux', "runtime bin gh https://e.org/gh.tar.gz\n" ),
+		'--os Linux --dry-run runtime'
+	);
+	isnt( $exit, 0, 'an archive URL without a file path exits non-zero' );
+	like( $output, qr/An archive URL needs the file path/, 'and says why' );
+
+	( $exit, $output ) = run_in(
+		fixture( 'Linux', "runtime bin gh https://e.org/gh bin/gh\n" ),
+		'--os Linux --dry-run runtime'
+	);
+	isnt( $exit, 0, 'a file path with a plain URL exits non-zero' );
+	like( $output, qr/A file path in the archive needs an archive URL/,
+		'and says why' );
+}
+
 # The architecture aliases of Linux and Darwin map to the
 # release-asset spelling. A name with no alias passes through.
 {
@@ -351,7 +420,7 @@ qr{^\+ \S+/ftp \S+/\.local/bin/scw https://example\.org/dl/cli_2\.0_linux_amd64$
 	like( $output, qr/Invalid format/, 'and reports the bad line' );
 	like(
 		$output,
-		qr/<environment> bin <name> <url>/,
+		qr/<environment> bin <name> <url> \[<file-in-archive>\]/,
 		'and the expected shape'
 	);
 
