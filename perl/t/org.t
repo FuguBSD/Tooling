@@ -20,6 +20,7 @@ my @COPIES = (
 	'plans/.gitkeep',
 	'.claude/skills/review-panel/SKILL.md',
 	'.github/pull_request_template.md',
+	'.prettierrc',
 );
 
 # _slurp($path):
