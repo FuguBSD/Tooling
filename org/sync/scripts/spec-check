@@ -440,7 +440,13 @@ for my $source (@files) {
 		}
 	}
 	next unless $source =~ m{^(?:spec|plans)/};
-	for my $token ( $stripped =~ /\b(D-?[0-9]{1,3})\b/g ) {
+	while ( $stripped =~ /\b(D-?[0-9]{1,3})\b/g ) {
+		my $token  = $1;
+		my $prefix = substr $stripped, 0, $-[1];
+
+		# A sibling-repository citation names the repository
+		# in front. The local register cannot resolve it.
+		next if $prefix =~ /[A-Z][A-Za-z0-9]*\s+\z/;
 		push @errors, "$source: unresolved decision: $token"
 		    unless $decisions =~ /\b\Q$token\E\b/;
 	}
