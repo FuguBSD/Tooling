@@ -127,10 +127,10 @@ runs:
         #
         # A consumer repository keeps the installer at scripts/deps.
         # The Tooling repository keeps the canonical copy at
-        # perl/sync/scripts/deps and has no scripts/deps. hashFiles
+        # org/sync/scripts/deps and has no scripts/deps. hashFiles
         # skips a path that does not exist, so each repository hashes
         # the manifest plus the one installer path it has.
-        hash="${{ hashFiles('deps/Linux.txt', 'scripts/deps', 'perl/sync/scripts/deps') }}"
+        hash="${{ hashFiles('deps/Linux.txt', 'scripts/deps', 'org/sync/scripts/deps') }}"
 
         echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
         echo "key=$prefix$hash" >> "$GITHUB_OUTPUT"
