@@ -13,7 +13,7 @@ use FindBin    qw($RealBin);
 use File::Path qw(make_path);
 use File::Temp qw(tempdir);
 
-my $script = "$RealBin/../sync/scripts/deps";
+my $script = "$RealBin/../../org/sync/scripts/deps";
 my $root   = "$RealBin/../..";
 ok( -x $script, 'deps script is executable' );
 

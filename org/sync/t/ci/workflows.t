@@ -4,7 +4,7 @@
 #
 # The canonical setup-perl action lives in FuguBSD/Tooling, and this
 # repository references it across repositories. This test is itself a
-# synced copy, owned by FuguBSD/Tooling at perl/sync/t/ci/workflows.t.
+# synced copy, owned by FuguBSD/Tooling at org/sync/t/ci/workflows.t.
 # Nothing under .github/ runs outside a runner, so the test reads the
 # workflows as text and asserts the invariants that only fail in CI:
 # that every reference points at the shared action, that every value

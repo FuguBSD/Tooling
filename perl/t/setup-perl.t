@@ -37,10 +37,10 @@ my %TARGET = (
 
 # The paths the cache key hashes. A consumer keeps the installer at
 # scripts/deps. This repository keeps the canonical copy at
-# perl/sync/scripts/deps and has no scripts/deps. hashFiles skips a
+# org/sync/scripts/deps and has no scripts/deps. hashFiles skips a
 # path that does not exist, so each repository hashes the manifest
 # plus the one installer path it has.
-my @HASHED = ( 'deps/Linux.txt', 'scripts/deps', 'perl/sync/scripts/deps' );
+my @HASHED = ( 'deps/Linux.txt', 'scripts/deps', 'org/sync/scripts/deps' );
 
 # _slurp($path):
 #	Whole file as text, or undef with a failed assertion.
@@ -167,7 +167,7 @@ subtest 'the cache key covers what decides the tree' => sub {
 
 	ok( -f "$root/deps/Linux.txt", 'the manifest exists here' );
 	ok(
-		-f "$root/perl/sync/scripts/deps",
+		-f "$root/org/sync/scripts/deps",
 		'the canonical installer exists here'
 	);
 

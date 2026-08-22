@@ -21,11 +21,15 @@
 # usage: sync [--check]
 #
 # Run the script from the root of a consumer repository. It copies
-# every file under perl/sync/ of the Tooling checkout into the same
-# path of the consumer, with the file mode of the source. With
-# --check it changes nothing: it reports every file that is missing,
-# differs in content, or differs in the exec bit, and exits non-zero
-# when it found any. CI runs --check as the drift gate.
+# every file of the packs that the consumer selects into the same
+# path of the consumer, with the file mode of the source. A pack is
+# one sync tree of the Tooling checkout: `org` is org/sync/ and every
+# consumer takes it, `perl` is perl/sync/ for the Perl repositories.
+# The consumer selects its packs with `sync.pack` lines in .toolingrc;
+# with no such line the consumer takes the org pack only. With
+# --check the script changes nothing: it reports every file that is
+# missing, differs in content, or differs in the exec bit, and exits
+# non-zero when it found any. CI runs --check as the drift gate.
 #
 # The script resolves the Tooling root from its own location, so it
 # takes no argument. It refuses to run outside a consumer: the
@@ -54,14 +58,31 @@ my $tooling = Cwd::abs_path(
 		dirname( File::Spec->rel2abs(__FILE__) ),
 		File::Spec->updir
 	) );
-my $source = File::Spec->catdir( $tooling, 'perl', 'sync' );
--d $source or die "sync: cannot find $source\n";
+
+my %PACKS = (
+	org  => File::Spec->catdir( $tooling, 'org',  'sync' ),
+	perl => File::Spec->catdir( $tooling, 'perl', 'sync' ),
+);
 
 my $target = getcwd();
 $target ne $tooling
     or die "sync: run from a consumer repository, not from Tooling\n";
--f File::Spec->catfile( $target, '.toolingrc' )
-    or die "sync: no .toolingrc in $target (run from a consumer root)\n";
+my $rc = File::Spec->catfile( $target, '.toolingrc' );
+-f $rc or die "sync: no .toolingrc in $target (run from a consumer root)\n";
+
+my @packs;
+open my $rcfh, '<', $rc or die "sync: read .toolingrc: $!\n";
+while ( my $line = <$rcfh> ) {
+	next unless $line =~ /^sync\.pack\s+(\S+)/;
+	my $pack = $1;
+	$PACKS{$pack} or die "sync: unknown pack in .toolingrc: $pack\n";
+	push @packs, $pack;
+}
+close $rcfh;
+@packs = ('org') unless @packs;
+
+my @sources = map { $PACKS{$_} } @packs;
+-d $_ or die "sync: cannot find $_\n" for @sources;
 
 # _slurp($path):
 #	Whole file as bytes, or die.
@@ -75,24 +96,30 @@ sub _slurp ($path)
 	return $content;
 }
 
-my @manifest;
-File::Find::find( {
-		wanted => sub {
-			return unless -f $_;
-			push @manifest,
-			    File::Spec->abs2rel( $File::Find::name, $source );
+my %manifest;
+for my $source (@sources) {
+	File::Find::find( {
+			wanted => sub {
+				return unless -f $_;
+				my $path =
+				    File::Spec->abs2rel( $File::Find::name,
+					$source );
+				die "sync: $path is in two packs\n"
+				    if exists $manifest{$path};
+				$manifest{$path} = $source;
+			},
+			no_chdir => 1,
 		},
-		no_chdir => 1,
-	},
-	$source
-);
-@manifest = sort @manifest;
-@manifest or die "sync: nothing to sync under $source\n";
+		$source
+	);
+}
+my @manifest = sort keys %manifest;
+@manifest or die "sync: nothing to sync\n";
 
 my @drift;
 for my $path (@manifest) {
-	my $from = File::Spec->catfile( $source, $path );
-	my $to   = File::Spec->catfile( $target, $path );
+	my $from = File::Spec->catfile( $manifest{$path}, $path );
+	my $to   = File::Spec->catfile( $target,          $path );
 	my $mode = ( stat $from )[2] & 0777;
 
 	if ($check) {

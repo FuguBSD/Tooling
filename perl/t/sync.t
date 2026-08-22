@@ -31,11 +31,13 @@ sub run_in ( $dir, @args )
 	return ( $exit, $output );
 }
 
-sub consumer ()
+sub consumer (@packs)
 {
+	@packs = qw(org perl) unless @packs;
 	my $dir = tempdir( CLEANUP => 1 );
 	open my $fh, '>', "$dir/.toolingrc" or die "write: $!";
 	print $fh "dist.name Fix\n";
+	print $fh "sync.pack $_\n" for @packs;
 	close $fh;
 
 	return $dir;
@@ -112,6 +114,48 @@ my $dir = consumer();
 
 	( $exit, $output ) = run_in( $dir, '--check' );
 	is( $exit, 0, 'and --check ignores it' );
+}
+
+# A consumer that selects the org pack only gets no Perl files.
+{
+	my $org = consumer('org');
+	my ( $exit, $output ) = run_in($org);
+	is( $exit, 0, 'sync into an org-only consumer works' )
+	    or diag($output);
+
+	ok( -f "$org/scripts/deps",       'the installer arrives' );
+	ok( -f "$org/scripts/spec-check", 'the spec check arrives' );
+	ok( -f "$org/scripts/ste-lint",   'the prose lint arrives' );
+	ok( -f "$org/CLAUDE.md",          'the root instructions arrive' );
+	ok( -f "$org/spec/CLAUDE.md",     'the spec instructions arrive' );
+	ok( -f "$org/plans/CLAUDE.md",    'the plan instructions arrive' );
+	ok( !-f "$org/scripts/dist",      'no dist script arrives' );
+	ok( !-f "$org/.perlcriticrc",     'no lint configuration arrives' );
+
+	( $exit, $output ) = run_in( $org, '--check' );
+	is( $exit, 0, 'a fresh org-only sync passes --check' )
+	    or diag($output);
+}
+
+# A consumer with no sync.pack line gets the org pack.
+{
+	my $bare = tempdir( CLEANUP => 1 );
+	open my $fh, '>', "$bare/.toolingrc" or die "write: $!";
+	print $fh "dist.name Fix\n";
+	close $fh;
+
+	my ( $exit, $output ) = run_in($bare);
+	is( $exit, 0, 'sync with no pack line works' ) or diag($output);
+	ok( -f "$bare/scripts/deps",  'and delivers the org pack' );
+	ok( !-f "$bare/scripts/dist", 'and only the org pack' );
+}
+
+# An unknown pack is refused.
+{
+	my $bad = consumer('cobol');
+	my ( $exit, $output ) = run_in($bad);
+	isnt( $exit, 0, 'an unknown pack is refused' );
+	like( $output, qr/unknown pack/, 'and the error names the cause' );
 }
 
 done_testing();
