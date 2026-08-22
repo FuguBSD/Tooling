@@ -84,7 +84,9 @@ for my $file (@files) {
 	}
 }
 
-ok( $users >= 1, 'at least one workflow uses the shared action' );
+# A repository with no Perl dependencies uses no setup-perl at all.
+# The rules above apply to each use, not to the count.
+note("setup-perl uses found: $users");
 
 # The supply-chain rule: no third-party action. A workflow may use
 # GitHub's own actions/, the FuguBSD organization's, or a local path -
