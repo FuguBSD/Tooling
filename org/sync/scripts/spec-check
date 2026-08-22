@@ -439,7 +439,10 @@ for my $source (@files) {
 			    unless $known{$token};
 		}
 	}
-	next unless $source =~ m{^(?:spec|plans)/};
+
+	# A plan discusses sibling decisions in prose, so the decision
+	# check covers the specification documents only.
+	next unless $source =~ m{^spec/[^/]+\.md\z};
 	while ( $stripped =~ /\b(D-?[0-9]{1,3})\b/g ) {
 		my $token  = $1;
 		my $prefix = substr $stripped, 0, $-[1];
