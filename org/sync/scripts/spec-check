@@ -51,6 +51,8 @@ use File::Basename qw(dirname);
 use File::Spec     ();
 use Getopt::Long   qw(GetOptions);
 
+binmode $_, ':encoding(UTF-8)' for *STDOUT, *STDERR;
+
 my $root;
 my $drift;
 GetOptions( 'root=s' => \$root, 'drift=s' => \$drift )
