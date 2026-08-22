@@ -205,4 +205,43 @@ EOF
 	like( $output, qr/unresolved citation: FIX-NINE/, 'and is named' );
 }
 
+# A sibling-repository citation is exempt, for a unit and for a
+# decision. A capitalized word that is not a repository name is not.
+{
+	my $root = fixture();
+	write_file( "$root/plans/003-z/plan.md",
+		"# 003 \x{2014} Z\n\nFuguVM FIX-NINE guides this plan.\n" );
+	my ( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a sibling unit citation is exempt' )
+	    or diag($output);
+
+	my $doc = <<'EOF';
+# The fixture
+
+FuguOracle D-77 guides unit one.
+
+<a id="fix-one"></a>
+
+## Unit one
+
+- **FIX-ONE-1** — The fixture must exist.
+
+<a id="fix-two"></a>
+
+## Unit two
+
+Prose only.
+EOF
+	( $exit, $output ) =
+	    run_check( fixture( 'spec/fixture.md' => $doc ) );
+	is( $exit, 0, 'a sibling decision citation is exempt' )
+	    or diag($output);
+
+	$doc =~ s/FuguOracle D-77 guides unit one\./See D-77 for unit one./;
+	( $exit, $output ) =
+	    run_check( fixture( 'spec/fixture.md' => $doc ) );
+	isnt( $exit, 0, 'a local unresolved decision fails' );
+	like( $output, qr/unresolved decision: D-77/, 'and is named' );
+}
+
 done_testing();
