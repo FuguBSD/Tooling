@@ -24,7 +24,8 @@
 # every file of the packs that the consumer selects into the same
 # path of the consumer, with the file mode of the source. A pack is
 # one sync tree of the Tooling checkout: `org` is org/sync/ and every
-# consumer takes it, `perl` is perl/sync/ for the Perl repositories.
+# consumer takes it, `perl` is perl/sync/ for the Perl repositories,
+# and `infra` is infra/sync/ for the repositories with OpenTofu code.
 # The consumer selects its packs with `sync.pack` lines in .toolingrc;
 # with no such line the consumer takes the org pack only. With
 # --check the script changes nothing: it reports every file that is
@@ -60,8 +61,9 @@ my $tooling = Cwd::abs_path(
 	) );
 
 my %PACKS = (
-	org  => File::Spec->catdir( $tooling, 'org',  'sync' ),
-	perl => File::Spec->catdir( $tooling, 'perl', 'sync' ),
+	org   => File::Spec->catdir( $tooling, 'org',   'sync' ),
+	perl  => File::Spec->catdir( $tooling, 'perl',  'sync' ),
+	infra => File::Spec->catdir( $tooling, 'infra', 'sync' ),
 );
 
 my $target = getcwd();
