@@ -79,7 +79,8 @@ test: $(TEST_TARGETS)
 
 - `all: check` stands first (MK-DISPATCH-5). The first rule sets the default
   goal in both dialects, so bare `make` runs the commit gate, and no target of
-  `mk/local.mk` takes that role.
+  `mk/local.mk` takes that role. Bare `make` installs nothing: `make deps-test`
+  stays an explicit step.
 - The include list is fixed (MK-DISPATCH-2). A glob makes the order and the
   pickup accidental.
 - `mk/local.mk` loads first, so the consumer sets variables before any fragment
@@ -103,9 +104,9 @@ lint-perl:
 	...
 ```
 
-- Every sub-target stays addressable, for example `make lint-perl`
-  (MK-COMPOSE-2). CI keeps its per-tool jobs through the sub-targets.
-- An aggregate is a prerequisite list, so `make -j` runs the sub-targets in
+- Every namespaced target stays addressable, for example `make lint-perl`
+  (MK-COMPOSE-2). CI keeps its per-tool jobs through the namespaced targets.
+- An aggregate is a prerequisite list, so `make -j` runs its targets in
   parallel.
 
 ### The vocabulary
@@ -160,8 +161,8 @@ aggregates (MK-LOCAL-2).
 ### This repository is consumer zero
 
 sync refuses to run inside this repository, so the root holds verbatim copies of
-the org instruction files (SYNC-CHECK). SYNC-CHECK-4 extends that rule to the
-dispatcher and the pack fragments, and this plan implements it:
+shared files (SYNC-CHECK). SYNC-CHECK-4 extends that rule to the dispatcher and
+the pack fragments, and this plan implements it:
 
 - The root `GNUmakefile`, `mk/org.mk`, and `mk/perl.mk` equal the canon byte for
   byte, and the root `Makefile` leaves.
@@ -199,7 +200,7 @@ every consumer gets.
   - `make check` runs `lint`, `format`, `test`, `spec-check`, and `ste-lint`
     (MK-VERBS-3, MK-COMPOSE-5).
   - Bare `make` runs `check` (MK-DISPATCH-5).
-  - `make format` changes no file, and `make format-fix` writes.
+  - `make check` and `make format` change no file, and `make format-fix` writes.
   - `make format-md` and `make format-md-fix` exist, and no aggregate contains
     them.
   - `make deps`, `make deps-test`, and `make deps-develop` resolve.

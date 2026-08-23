@@ -42,8 +42,8 @@ packs, each file at the same relative path.
 - **SYNC-CHECK-3** — The root copies of the org files in this repository must
   equal the canon byte for byte.
 - **SYNC-CHECK-4** — The root of this repository must hold a copy of the
-  dispatcher and of each pack fragment. Each copy must equal the canon byte for
-  byte. The consumer hook `mk/local.mk` has no canon and is exempt.
+  dispatcher and of each pack fragment that the dispatcher includes. Each copy
+  must equal the canon byte for byte.
 
 <a id="sync-bootstrap"></a>
 

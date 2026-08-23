@@ -10,10 +10,11 @@ portable subset, and the consumer hook.
 
 ## The target vocabulary
 
-- **MK-VERBS-1** — A `<verb>` target must read and must not write. A
-  `<verb>-fix` target writes the change that its verb reports. A verb without a
-  fixer must not have a `-fix` target. The rule covers the verbs of MK-VERBS-2
-  and their sub-targets, and no other target.
+- **MK-VERBS-1** — Every target of the interface must read and must not write.
+  The exceptions are the `-fix` targets, `dist`, and the `deps` targets. A
+  `-fix` target writes the change that its paired target reports. A target
+  without a fixer must not have a `-fix` target. The rule covers the targets
+  that the dispatcher and the fragments define.
 - **MK-VERBS-2** — Every consumer must serve the generic verbs `check`, `lint`,
   `format`, `format-fix`, and `test`.
 - **MK-VERBS-3** — `check` must run every read-only gate of the repository,
@@ -21,11 +22,11 @@ portable subset, and the consumer hook.
 - **MK-VERBS-4** — The target names `deps`, `deps-test`, and `deps-develop` must
   not change. The setup-perl action computes them from its `dependencies` input.
 - **MK-VERBS-5** — `format-md` and `format-md-fix` must not join an aggregate.
-  prettier runs through npx, no deps manifest provides node, and CI runs the
-  targets in their own job.
+  prettier runs through npx, and no deps manifest provides node. CI runs
+  `format-md` in its own job.
 
-`spec-check`, `ste-lint`, `dist`, and the `deps` targets keep their names as
-plain targets, outside the rule of MK-VERBS-1.
+`all`, `spec-check`, `ste-lint`, `dist`, and the `deps` targets are plain
+targets, not verbs.
 
 <a id="mk-compose"></a>
 
@@ -34,15 +35,17 @@ plain targets, outside the rule of MK-VERBS-1.
 A fragment appends namespaced targets to aggregation variables, and the
 dispatcher aggregates them into the verbs.
 
-- **MK-COMPOSE-1** — A fragment must append its targets to the aggregation
-  variables `CHECK_TARGETS`, `LINT_TARGETS`, `FORMAT_TARGETS`,
-  `FORMAT_FIX_TARGETS`, and `TEST_TARGETS`.
-- **MK-COMPOSE-2** — A sub-target name must join the verb and the language or
+- **MK-COMPOSE-1** — The aggregation variables are `CHECK_TARGETS`,
+  `LINT_TARGETS`, `FORMAT_TARGETS`, `FORMAT_FIX_TARGETS`, and `TEST_TARGETS`. A
+  fragment must append each namespaced target to the variable of its verb,
+  except the targets of MK-VERBS-5.
+- **MK-COMPOSE-2** — A namespaced target must join the verb and the language or
   the tool, for example `lint-perl` and `format-md-fix`.
 - **MK-COMPOSE-3** — The aggregate rules must sit after every include, because
   make expands a prerequisite list at read time.
-- **MK-COMPOSE-4** — A fragment must give each variable default with `?=`, so
-  the consumer hook wins.
+- **MK-COMPOSE-4** — A fragment must give a configuration variable its default
+  with `?=`, so the consumer hook wins. A fragment must append to an aggregation
+  variable with `+=`.
 - **MK-COMPOSE-5** — `mk/org.mk` must append `lint`, `format`, `test`,
   `spec-check`, and `ste-lint` to `CHECK_TARGETS`, so `check` runs every gate of
   MK-VERBS-3.
@@ -58,7 +61,8 @@ value as absent.
 
 ## The dispatchers
 
-A dispatcher holds the include chain and the generic verbs, and nothing else.
+A dispatcher holds the default goal, the include chain, and the generic verbs,
+and nothing else.
 
 ```make
 # GNUmakefile: canonical copy, owned by FuguBSD/Tooling.
@@ -81,9 +85,9 @@ test: $(TEST_TARGETS)
   `mk/local.mk`, `mk/org.mk`, `mk/perl.mk`. A dispatcher must not use a glob.
 - **MK-DISPATCH-3** — Only a dispatcher can use dialect-specific syntax.
 - **MK-DISPATCH-4** — The BSD dispatcher `Makefile` must mirror the GNU
-  dispatcher for OpenBSD base make, with the BSD include directives (`.include`
-  for a required file, `.sinclude` for an optional file). The path `Makefile`
-  must stay free for it in every consumer.
+  dispatcher for OpenBSD base make. It must use `.include` for a required file
+  and `.sinclude` for an optional file. The path `Makefile` must stay free for
+  it in every consumer.
 - **MK-DISPATCH-5** — The first rule of a dispatcher must be `all: check`. Bare
   `make` then runs the commit gate in every consumer.
 
