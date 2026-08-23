@@ -57,9 +57,9 @@ dispatcher aggregates them into the verbs.
 ### Variables
 
 `mk/org.mk` defines `SPEC_CHECK`, `STE_LINT`, `PRETTIER`, `PROVE`, and
-`TEST_GLOBS`. `mk/perl.mk` defines `PERL_SRC_DIRS`, `DEPS`, `DIST`, and
-`VERSION`. The `VERSION` default is empty, and `scripts/dist` treats an empty
-value as absent.
+`TEST_GLOBS`. `mk/perl.mk` defines `PERL_SRC_DIRS`, `PERLTIDY`, `DEPS`, `DIST`,
+and `VERSION`. The `VERSION` default is empty, and `scripts/dist` treats an
+empty value as absent.
 
 <a id="mk-dispatch"></a>
 

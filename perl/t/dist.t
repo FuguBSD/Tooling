@@ -244,6 +244,21 @@ EOF
 	like( $output, qr/Fix-0\.0\.0\.tar\.gz/, 'and defaults to 0.0.0' );
 }
 
+# An empty --version value counts as absent: the dist target of
+# mk/perl.mk passes --version '' when the consumer sets no VERSION.
+{
+	my $dir = fixture(<<'EOF');
+dist.name     Fix
+dist.module   Fix
+dist.abstract a lean fixture
+dist.author   Dick Olsson <hi@senzilla.io>
+dist.testdir  t/fix
+EOF
+	my ( $exit, $output ) = run_in( $dir, q{--version ''} );
+	is( $exit, 0, 'an empty version builds' ) or diag($output);
+	like( $output, qr/Fix-0\.0\.0\.tar\.gz/, 'and counts as absent' );
+}
+
 # Configuration errors fail closed, before anything is staged.
 my %BAD = (
 	'a missing .toolingrc' => undef,
