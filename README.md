@@ -27,6 +27,8 @@ contracts.
   CI drift gate
 - `.github/workflows/perl-build.yml`, `perl-release.yml` — reusable workflows
   that the Perl consumers call
+- `.github/workflows/web-publish.yml` — reusable workflow that builds the
+  FuguWeb site of a consumer and deploys it to GitHub Pages
 
 ## Consumer usage
 
@@ -37,8 +39,8 @@ From a consumer repository root, with this repository as a sibling checkout:
 
 A consumer selects its packs with `sync.pack` lines in `.toolingrc`: every
 consumer takes `org`, and a Perl repository adds `perl`. A consumer's
-`check.yml` runs the same `--check` as a drift gate. A consumer's `release.yml`
-and `build.yml` are thin callers of the reusable workflows.
+`check.yml` runs the same `--check` as a drift gate. A consumer's `release.yml`,
+`build.yml`, and `publish.yml` are thin callers of the reusable workflows.
 
 ## Commands
 

@@ -1,0 +1,59 @@
+name: "Web: Publish"
+
+# Reusable publish workflow for the FuguBSD websites. A consumer
+# calls it from its own publish.yml on a push to main. The workflow
+# builds the FuguWeb site of the caller and deploys the result to
+# GitHub Pages. The caller keeps the trigger, the permissions, and
+# the concurrency group; this callee keeps the github-pages
+# environment.
+#
+# The workflow installs fuguweb from the release tarballs of Fugu and
+# FuguWeb, never from a checkout. Thus every consumer builds with the
+# same released tool, and a website repository needs no Perl setup of
+# its own.
+
+on:
+  workflow_call:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # The page date of a POD module comes from the git log of
+          # the file, so the build reads the full history.
+          fetch-depth: 0
+
+      - name: Install the renderers
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes mandoc lowdown cpanminus
+
+      - name: Install fuguweb
+        run: |
+          sudo cpanm --notest \
+            https://github.com/FuguBSD/Fugu/releases/latest/download/Fugu.tar.gz \
+            https://github.com/FuguBSD/FuguWeb/releases/latest/download/App-FuguWeb.tar.gz
+
+      - name: Build the site
+        run: fuguweb build --out web/build
+
+      - name: Check the site
+        run: fuguweb check --out web/build
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload the site as the Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/build
+
+      - name: Deploy to Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
