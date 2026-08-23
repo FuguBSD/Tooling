@@ -33,6 +33,7 @@ phase applies.
 | [MK-LOCAL](make.md#mk-local)             | open    | —       | —                                                                                                                        |
 | [WFL-ACTIONS](workflows.md#wfl-actions)  | done    | —       | [workflows.t](../org/sync/t/ci/workflows.t)                                                                              |
 | [WFL-REUSE](workflows.md#wfl-reuse)      | done    | —       | [perl-build.yml](../.github/workflows/perl-build.yml), [perl-release.yml](../.github/workflows/perl-release.yml)         |
+| [WFL-WEB](workflows.md#wfl-web)          | done    | —       | [web-publish.yml](../.github/workflows/web-publish.yml)                                                                  |
 | [WFL-CACHE](workflows.md#wfl-cache)      | done    | —       | [setup-perl](../perl/actions/setup-perl/action.yml), [setup-perl.t](../perl/t/setup-perl.t)                              |
 
 ## Update protocol
