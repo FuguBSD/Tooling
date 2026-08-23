@@ -5,10 +5,10 @@
 Proposed. Implements: MK-VERBS, MK-COMPOSE, MK-DISPATCH without MK-DISPATCH-4,
 MK-SUBSET, MK-LOCAL, and the rule SYNC-CHECK-4.
 
-The specification is in place: [make.md](../../spec/make.md) states the units,
-the register holds one `open` row for each, and the decisions D-07, D-08, and
-D-09 govern them. One implementation change remains, and it can land now.
-Nothing waits on another repository.
+The specification is in place: [make.md](../../spec/make.md) states the units.
+The register holds one `open` row for each MK unit, and a `partial` row for
+SYNC-CHECK. Decisions D-07, D-08, and D-09 govern the design. One implementation
+change remains, and it can land now. Nothing waits on another repository.
 
 The BSD dispatcher `Makefile` of MK-DISPATCH-4 waits for a later plan. This plan
 prepares for it: every fragment satisfies the portable subset of MK-SUBSET, and
@@ -46,8 +46,9 @@ pieces land.
 
 - `GNUmakefile` — the org pack (MK-DISPATCH-1). The dispatcher: the include
   chain and the generic verbs, and nothing else.
-- `mk/org.mk` — the org pack. The `spec-check`, `ste-lint`, `test`, `format-md`,
-  and `format-md-fix` targets.
+- `mk/org.mk` — the org pack. The `spec-check`, `ste-lint`, `test-prove`,
+  `format-md`, and `format-md-fix` targets, and the `CHECK_TARGETS` list of
+  MK-COMPOSE-5.
 - `mk/perl.mk` — the perl pack. The `lint-perl`, `format-perl`,
   `format-perl-fix`, `dist`, `deps`, `deps-test`, and `deps-develop` targets.
 - `mk/local.mk` — the consumer (MK-LOCAL). Build variables and repo-only
@@ -62,6 +63,8 @@ per MK-DISPATCH-4, so an adoption change removes the old root `Makefile`.
 
 ```make
 # GNUmakefile: canonical copy, owned by FuguBSD/Tooling.
+all: check
+
 -include mk/local.mk
 include mk/org.mk
 -include mk/perl.mk
@@ -70,9 +73,14 @@ check: $(CHECK_TARGETS)
 lint: $(LINT_TARGETS)
 format: $(FORMAT_TARGETS)
 format-fix: $(FORMAT_FIX_TARGETS)
-.PHONY: check lint format format-fix
+test: $(TEST_TARGETS)
+.PHONY: all check lint format format-fix test
 ```
 
+- `all: check` stands first (MK-DISPATCH-5). The first rule sets the default
+  goal in both dialects. Bare `make` therefore runs the commit gate, and no
+  target of `mk/local.mk` takes that role. Bare `make` installs nothing:
+  `make deps-test` stays an explicit step.
 - The include list is fixed (MK-DISPATCH-2). A glob makes the order and the
   pickup accidental.
 - `mk/local.mk` loads first, so the consumer sets variables before any fragment
@@ -85,7 +93,9 @@ format-fix: $(FORMAT_FIX_TARGETS)
 ### Composition
 
 A fragment appends namespaced targets to the aggregation variables of
-MK-COMPOSE-1, and it defines those targets:
+MK-COMPOSE-1, and it defines those targets. `mk/org.mk` also appends `lint`,
+`format`, `test`, `spec-check`, and `ste-lint` to `CHECK_TARGETS`
+(MK-COMPOSE-5), so `check` runs every gate:
 
 ```make
 # mk/perl.mk
@@ -94,9 +104,9 @@ lint-perl:
 	...
 ```
 
-- Every sub-target stays addressable, for example `make lint-perl`
-  (MK-COMPOSE-2). CI keeps its per-tool jobs through the sub-targets.
-- An aggregate is a prerequisite list, so `make -j` runs the sub-targets in
+- Every namespaced target stays addressable, for example `make lint-perl`
+  (MK-COMPOSE-2). CI keeps its per-tool jobs through the namespaced targets.
+- An aggregate is a prerequisite list, so `make -j` runs its targets in
   parallel.
 
 ### The vocabulary
@@ -107,10 +117,10 @@ A `<verb>` target reads and never writes, and a `<verb>-fix` target writes
 (MK-VERBS-4): the shared [setup-perl](../../perl/actions/setup-perl/action.yml)
 action computes them from its `dependencies` input.
 
-`format-md` runs prettier, and it stays out of every aggregate (MK-VERBS-5).
-prettier runs through npx, and no deps manifest provides node. CI runs
-`make format-md` in its own job, as today. The comment that states this reason
-lives in `mk/org.mk`.
+`format-md` and `format-md-fix` run prettier, and they stay out of every
+aggregate (MK-VERBS-5). prettier runs through npx, and no deps manifest provides
+node. CI runs `make format-md` in its own job, as today. The comment that states
+this reason lives in `mk/org.mk`.
 
 The old writer names die with the adoption: `tidy-fix`, `prettier-fix`, and
 `fmt`. No alias remains.
@@ -119,7 +129,7 @@ The old writer names die with the adoption: `tidy-fix`, `prettier-fix`, and
 
 The GNU dispatcher `GNUmakefile` ships in this plan, and it matches the dialect
 of the current Makefiles. The BSD dispatcher `Makefile` of MK-DISPATCH-4 mirrors
-it with `.include` lines, and a later plan adds it. GNU make prefers a
+it with the BSD include directives, and a later plan adds it. GNU make prefers a
 `GNUmakefile` when both files exist, and BSD make reads `Makefile`, so the pair
 serves both dialects side by side. Until the BSD dispatcher lands, an OpenBSD
 operator runs `gmake`.
@@ -140,7 +150,8 @@ keeps `make dist VERSION=1.2.3`, so
 
 - `SPEC_CHECK`, `STE_LINT` — `scripts/spec-check` and `scripts/ste-lint`.
 - `PRETTIER` — `npx prettier@3.9.6`.
-- `PROVE`, `TEST_GLOBS` — `prove -l` and `t/ci/*.t`.
+- `PROVE`, `TEST_GLOBS` — `prove -l` and `t/ci/*.t`. A Perl consumer must set
+  `TEST_GLOBS` in `mk/local.mk`: the default holds the CI tier only.
 - `PERL_SRC_DIRS` — `lib scripts`, the directories of the module and shebang
   scan.
 - `DEPS`, `DIST`, `VERSION` — the script paths, and the empty version default.
@@ -151,8 +162,8 @@ aggregates (MK-LOCAL-2).
 ### This repository is consumer zero
 
 sync refuses to run inside this repository, so the root holds verbatim copies of
-the shared files (SYNC-CHECK). SYNC-CHECK-4 extends that rule to the dispatcher
-and the fragments, and this plan implements it:
+shared files (SYNC-CHECK). SYNC-CHECK-4 extends that rule to the dispatcher and
+the pack fragments, and this plan implements it:
 
 - The root `GNUmakefile`, `mk/org.mk`, and `mk/perl.mk` equal the canon byte for
   byte, and the root `Makefile` leaves.
@@ -175,8 +186,9 @@ every consumer gets.
 - Update the job commands of `.github/workflows/check.yml` to the new verbs.
 - Update the Layout and Commands sections of the README.
 - Extend `perl/t/org.t` to the root `GNUmakefile` and fragment copies.
-- Add `perl/t/make.t`: build a fixture consumer in a temporary directory, sync
-  both packs into it, and prove the contract (see the acceptance list).
+- Add `perl/t/make.t`: build a fixture consumer in a temporary directory, with a
+  minimal specification so that `spec-check` passes. Sync both packs into it,
+  and prove the contract (see the acceptance list).
 - Set MK-VERBS, MK-COMPOSE, MK-SUBSET, and MK-LOCAL to `done`. Set MK-DISPATCH
   to `partial`, because the BSD dispatcher stays absent. Set SYNC-CHECK to
   `done`. Delete this plan directory.
@@ -185,16 +197,26 @@ every consumer gets.
 
 - `make check` passes in this repository through the canon `GNUmakefile`.
 - `perl/t/make.t` proves, in the fixture consumer:
-  - `make lint`, `make format`, and `make check` run the sub-targets that the
-    fragments append.
-  - `make format` changes no file, and `make format-fix` writes.
-  - `make format-md` exists, and no aggregate contains it.
+  - `make lint`, `make format`, and `make test` run the namespaced targets that
+    the fragments append.
+  - `make check` runs `lint`, `format`, `test`, `spec-check`, and `ste-lint`
+    (MK-VERBS-3, MK-COMPOSE-5).
+  - Bare `make` runs `check` (MK-DISPATCH-5).
+  - `make check`, `make format`, and `make format-md` change no file, and
+    `make format-fix` writes.
+  - `make format-md` and `make format-md-fix` exist, and no aggregate contains
+    them.
   - `make deps`, `make deps-test`, and `make deps-develop` resolve.
   - A variable set in `mk/local.mk` overrides a fragment default.
+  - A target that `mk/local.mk` appends to an aggregate runs with the fragment
+    targets (MK-COMPOSE-4).
+  - A repeated sync never delivers and never overwrites `mk/local.mk`
+    (MK-LOCAL-1).
   - No pack holds the path `Makefile`.
 - `perl/t/make.t` also scans the fragments for the constructs that MK-SUBSET
-  bans.
-- `perl/t/org.t` proves the root copies equal the canon.
+  bans, and asserts the include list of the dispatcher (MK-DISPATCH-2).
+- `perl/t/org.t` proves the root copies equal the canon, and the root of this
+  repository holds no `Makefile`.
 - `make spec-check` and `make ste-lint` pass.
 
 ## Out of scope
