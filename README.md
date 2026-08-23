@@ -16,7 +16,8 @@ contracts.
 
 - `org/sync/` — files synced verbatim into every consumer: the instruction
   files, `scripts/{deps,ftp,spec-check,ste-lint}`, `t/ci/workflows.t`, the
-  review-panel skill, the pull-request template, and `.prettierrc`
+  merge-it, pull-it, and review-panel skills, the pull-request template, and
+  `.prettierrc`
 - `perl/sync/` — files synced into the Perl consumers: `scripts/dist`,
   `lib/CLAUDE.md`, `.perlcriticrc`, and `.perltidyrc`
 - `actions/` — language-neutral composite actions (`gh-release`)

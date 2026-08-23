@@ -40,7 +40,8 @@ packs, each file at the same relative path.
 - **SYNC-CHECK-2** — The CI of a consumer must run `sync --check` as a drift
   gate.
 - **SYNC-CHECK-3** — The root copies of the org files in this repository must
-  equal the canon byte for byte.
+  equal the canon byte for byte. `scripts/` and `t/` have no root copies: the
+  scripts run in place, and the tests serve the consumers.
 - **SYNC-CHECK-4** — The root of this repository must hold a copy of the
   dispatcher and of each included pack fragment. Each copy must equal the canon
   byte for byte.
