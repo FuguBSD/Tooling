@@ -49,7 +49,7 @@ The drift gate maps each document to the code that implements it.
 | Document     | Roots                                                                  |
 | ------------ | ---------------------------------------------------------------------- |
 | sync.md      | `scripts/sync`, `org/sync`, `perl/sync`, `perl/t`                      |
-| make.md      | `org/sync`, `perl/sync`, `perl/t`                                      |
+| make.md      | `org/sync`, `perl/sync`, `perl/t`, `GNUmakefile`, `mk`                 |
 | workflows.md | `.github/workflows`, `actions`, `perl/actions`, `org/sync/t`, `perl/t` |
 
 ## Retired IDs

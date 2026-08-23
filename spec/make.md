@@ -12,17 +12,20 @@ portable subset, and the consumer hook.
 
 - **MK-VERBS-1** — A `<verb>` target must read and must not write. A
   `<verb>-fix` target writes the change that its verb reports. A verb without a
-  fixer must not have a `-fix` target.
+  fixer must not have a `-fix` target. The rule covers the verbs of MK-VERBS-2
+  and their sub-targets, and no other target.
 - **MK-VERBS-2** — Every consumer must serve the generic verbs `check`, `lint`,
   `format`, `format-fix`, and `test`.
-- **MK-VERBS-3** — `check` must run every read-only gate of the repository. It
-  is the commit gate.
+- **MK-VERBS-3** — `check` must run every read-only gate of the repository,
+  except `format-md` (MK-VERBS-5). It is the commit gate.
 - **MK-VERBS-4** — The target names `deps`, `deps-test`, and `deps-develop` must
   not change. The setup-perl action computes them from its `dependencies` input.
-- **MK-VERBS-5** — `format-md` must not join an aggregate. prettier runs through
-  npx, no deps manifest provides node, and CI runs the target in its own job.
+- **MK-VERBS-5** — `format-md` and `format-md-fix` must not join an aggregate.
+  prettier runs through npx, no deps manifest provides node, and CI runs the
+  targets in their own job.
 
-`spec-check`, `ste-lint`, and `dist` keep their names as plain targets.
+`spec-check`, `ste-lint`, `dist`, and the `deps` targets keep their names as
+plain targets, outside the rule of MK-VERBS-1.
 
 <a id="mk-compose"></a>
 
@@ -32,14 +35,17 @@ A fragment appends namespaced targets to aggregation variables, and the
 dispatcher aggregates them into the verbs.
 
 - **MK-COMPOSE-1** — A fragment must append its targets to the aggregation
-  variables `CHECK_TARGETS`, `LINT_TARGETS`, `FORMAT_TARGETS`, and
-  `FORMAT_FIX_TARGETS`.
-- **MK-COMPOSE-2** — A sub-target name must join the verb and the language, for
-  example `lint-perl` and `format-perl-fix`.
+  variables `CHECK_TARGETS`, `LINT_TARGETS`, `FORMAT_TARGETS`,
+  `FORMAT_FIX_TARGETS`, and `TEST_TARGETS`.
+- **MK-COMPOSE-2** — A sub-target name must join the verb and the language or
+  the tool, for example `lint-perl` and `format-md-fix`.
 - **MK-COMPOSE-3** — The aggregate rules must sit after every include, because
   make expands a prerequisite list at read time.
 - **MK-COMPOSE-4** — A fragment must give each variable default with `?=`, so
   the consumer hook wins.
+- **MK-COMPOSE-5** — `mk/org.mk` must append `lint`, `format`, `test`,
+  `spec-check`, and `ste-lint` to `CHECK_TARGETS`, so `check` runs every gate of
+  MK-VERBS-3.
 
 ### Variables
 
@@ -56,6 +62,8 @@ A dispatcher holds the include chain and the generic verbs, and nothing else.
 
 ```make
 # GNUmakefile: canonical copy, owned by FuguBSD/Tooling.
+all: check
+
 -include mk/local.mk
 include mk/org.mk
 -include mk/perl.mk
@@ -64,7 +72,8 @@ check: $(CHECK_TARGETS)
 lint: $(LINT_TARGETS)
 format: $(FORMAT_TARGETS)
 format-fix: $(FORMAT_FIX_TARGETS)
-.PHONY: check lint format format-fix
+test: $(TEST_TARGETS)
+.PHONY: all check lint format format-fix test
 ```
 
 - **MK-DISPATCH-1** — The org pack must own the GNU dispatcher `GNUmakefile`.
@@ -72,8 +81,11 @@ format-fix: $(FORMAT_FIX_TARGETS)
   `mk/local.mk`, `mk/org.mk`, `mk/perl.mk`. A dispatcher must not use a glob.
 - **MK-DISPATCH-3** — Only a dispatcher can use dialect-specific syntax.
 - **MK-DISPATCH-4** — The BSD dispatcher `Makefile` must mirror the GNU
-  dispatcher with `.include` lines, for OpenBSD base make. The path `Makefile`
+  dispatcher for OpenBSD base make, with the BSD include directives (`.include`
+  for a required file, `.sinclude` for an optional file). The path `Makefile`
   must stay free for it in every consumer.
+- **MK-DISPATCH-5** — The first rule of a dispatcher must be `all: check`. Bare
+  `make` then runs the commit gate in every consumer.
 
 GNU make prefers a `GNUmakefile` when both files exist, and BSD make reads
 `Makefile`. The two dispatchers therefore serve both dialects side by side.
@@ -82,8 +94,8 @@ GNU make prefers a `GNUmakefile` when both files exist, and BSD make reads
 
 ## The portable subset
 
-- **MK-SUBSET-1** — A fragment must use only the assignments `=`, `?=`, and
-  `+=`, variable references, rule lines, recipe lines, and `.PHONY`.
+- **MK-SUBSET-1** — A fragment must use only comment lines, the assignments `=`,
+  `?=`, and `+=`, variable references, rule lines, recipe lines, and `.PHONY`.
 - **MK-SUBSET-2** — A fragment must not use a conditional, a GNU function, or a
   BSD variable modifier.
 - **MK-SUBSET-3** — Logic must live in the scripts. A fragment must not compute
