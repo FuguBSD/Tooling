@@ -14,12 +14,14 @@ contracts.
 
 ## Layout
 
-- `org/sync/` — files synced verbatim into every consumer: the instruction
-  files, `scripts/{deps,ftp,spec-check,ste-lint}`, `t/ci/workflows.t`, the
-  merge-it, pull-it, and review-panel skills, the pull-request template, and
-  `.prettierrc`
-- `perl/sync/` — files synced into the Perl consumers: `scripts/dist`,
-  `lib/CLAUDE.md`, `.perlcriticrc`, and `.perltidyrc`
+- `org/sync/` — files synced verbatim into every consumer: the `GNUmakefile`
+  dispatcher, `mk/org.mk`, the instruction files,
+  `scripts/{deps,ftp,spec-check,ste-lint}`, `t/ci/workflows.t`, the merge-it,
+  pull-it, and review-panel skills, the pull-request template, and `.prettierrc`
+- `perl/sync/` — files synced into the Perl consumers: `mk/perl.mk`,
+  `scripts/dist`, `lib/CLAUDE.md`, `.perlcriticrc`, and `.perltidyrc`
+- `GNUmakefile`, `mk/` — the root copies of the dispatcher and the fragments,
+  and `mk/local.mk`, the consumer hook of this repository
 - `actions/` — language-neutral composite actions (`gh-release`)
 - `perl/actions/` — Perl composite actions (`setup-perl`, `pause-upload`)
 - `perl/t/` — the tests of the canonical tooling
@@ -45,8 +47,8 @@ consumer takes `org`, and a Perl repository adds `perl`. A consumer's
 ## Commands
 
     make deps-test   # install Perl::Critic and Perl::Tidy
-    make check       # lint + test + tidy + spec-check + ste-lint
-    make prettier    # Markdown/JSON/YAML formatting
+    make check       # lint + format + test + spec-check + ste-lint
+    make format-md   # Markdown/JSON/YAML formatting
     prove -l perl/t/sync.t   # one test file
 
 ## Commit scopes

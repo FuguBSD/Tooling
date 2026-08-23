@@ -20,21 +20,21 @@ phase applies.
 
 ## Units
 
-| Unit                                     | State   | Done by | Note                                                                                                                     |
-| ---------------------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
-| [SYNC-PACKS](sync.md#sync-packs)         | done    | —       | [sync](../scripts/sync), [sync.t](../perl/t/sync.t)                                                                      |
-| [SYNC-IDENTITY](sync.md#sync-identity)   | done    | —       | [org/sync](../org/sync), [sync.t](../perl/t/sync.t)                                                                      |
-| [SYNC-CHECK](sync.md#sync-check)         | partial | —       | The root dispatcher and fragment copies of SYNC-CHECK-4 are absent. [sync.t](../perl/t/sync.t), [org.t](../perl/t/org.t) |
-| [SYNC-BOOTSTRAP](sync.md#sync-bootstrap) | done    | —       | [deps](../org/sync/scripts/deps), [deps.t](../perl/t/deps.t)                                                             |
-| [MK-VERBS](make.md#mk-verbs)             | open    | —       | —                                                                                                                        |
-| [MK-COMPOSE](make.md#mk-compose)         | open    | —       | —                                                                                                                        |
-| [MK-DISPATCH](make.md#mk-dispatch)       | open    | —       | —                                                                                                                        |
-| [MK-SUBSET](make.md#mk-subset)           | open    | —       | —                                                                                                                        |
-| [MK-LOCAL](make.md#mk-local)             | open    | —       | —                                                                                                                        |
-| [WFL-ACTIONS](workflows.md#wfl-actions)  | done    | —       | [workflows.t](../org/sync/t/ci/workflows.t)                                                                              |
-| [WFL-REUSE](workflows.md#wfl-reuse)      | done    | —       | [perl-build.yml](../.github/workflows/perl-build.yml), [perl-release.yml](../.github/workflows/perl-release.yml)         |
-| [WFL-WEB](workflows.md#wfl-web)          | done    | —       | [web-publish.yml](../.github/workflows/web-publish.yml)                                                                  |
-| [WFL-CACHE](workflows.md#wfl-cache)      | done    | —       | [setup-perl](../perl/actions/setup-perl/action.yml), [setup-perl.t](../perl/t/setup-perl.t)                              |
+| Unit                                     | State   | Done by | Note                                                                                                                         |
+| ---------------------------------------- | ------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| [SYNC-PACKS](sync.md#sync-packs)         | done    | —       | [sync](../scripts/sync), [sync.t](../perl/t/sync.t)                                                                          |
+| [SYNC-IDENTITY](sync.md#sync-identity)   | done    | —       | [org/sync](../org/sync), [sync.t](../perl/t/sync.t)                                                                          |
+| [SYNC-CHECK](sync.md#sync-check)         | done    | —       | [org.t](../perl/t/org.t), [sync.t](../perl/t/sync.t)                                                                         |
+| [SYNC-BOOTSTRAP](sync.md#sync-bootstrap) | done    | —       | [deps](../org/sync/scripts/deps), [deps.t](../perl/t/deps.t)                                                                 |
+| [MK-VERBS](make.md#mk-verbs)             | done    | —       | [org.mk](../org/sync/mk/org.mk), [perl.mk](../perl/sync/mk/perl.mk), [make.t](../perl/t/make.t)                              |
+| [MK-COMPOSE](make.md#mk-compose)         | done    | —       | [org.mk](../org/sync/mk/org.mk), [perl.mk](../perl/sync/mk/perl.mk), [make.t](../perl/t/make.t)                              |
+| [MK-DISPATCH](make.md#mk-dispatch)       | partial | —       | The BSD dispatcher `Makefile` of MK-DISPATCH-4 is absent. [GNUmakefile](../org/sync/GNUmakefile), [make.t](../perl/t/make.t) |
+| [MK-SUBSET](make.md#mk-subset)           | done    | —       | [org.mk](../org/sync/mk/org.mk), [perl.mk](../perl/sync/mk/perl.mk), [make.t](../perl/t/make.t)                              |
+| [MK-LOCAL](make.md#mk-local)             | done    | —       | [GNUmakefile](../org/sync/GNUmakefile), [local.mk](../mk/local.mk), [make.t](../perl/t/make.t)                               |
+| [WFL-ACTIONS](workflows.md#wfl-actions)  | done    | —       | [workflows.t](../org/sync/t/ci/workflows.t)                                                                                  |
+| [WFL-REUSE](workflows.md#wfl-reuse)      | done    | —       | [perl-build.yml](../.github/workflows/perl-build.yml), [perl-release.yml](../.github/workflows/perl-release.yml)             |
+| [WFL-WEB](workflows.md#wfl-web)          | done    | —       | [web-publish.yml](../.github/workflows/web-publish.yml)                                                                      |
+| [WFL-CACHE](workflows.md#wfl-cache)      | done    | —       | [setup-perl](../perl/actions/setup-perl/action.yml), [setup-perl.t](../perl/t/setup-perl.t)                                  |
 
 ## Update protocol
 

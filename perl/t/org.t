@@ -36,7 +36,9 @@ sub _walk ( $base, $strip )
 		$base
 	);
 
-	return sort @files;
+	my @sorted = sort @files;
+
+	return @sorted;
 }
 
 # _slurp($path):
@@ -61,6 +63,17 @@ for my $path (@copies) {
 	is( _slurp("$root/$path"), _slurp("$canon/$path"),
 		"$path equals the canon" );
 }
+
+# SYNC-CHECK-4: the root holds a copy of the dispatcher and of each
+# included pack fragment. The walk above covers the GNUmakefile and
+# mk/org.mk; the perl fragment lives in the perl pack. The path
+# Makefile stays free for the BSD dispatcher (MK-DISPATCH-4).
+is(
+	_slurp("$root/mk/perl.mk"),
+	_slurp("$root/perl/sync/mk/perl.mk"),
+	'mk/perl.mk equals the canon'
+);
+ok( !-f "$root/Makefile", 'the root holds no Makefile' );
 
 my @orphans = grep { !-f "$canon/$_" } _walk( "$root/.claude", $root );
 is( "@orphans", q{}, 'no orphaned root copy under .claude' );
