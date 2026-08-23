@@ -20,15 +20,20 @@ phase applies.
 
 ## Units
 
-| Unit                                     | State | Done by | Note                                                                                                             |
-| ---------------------------------------- | ----- | ------- | ---------------------------------------------------------------------------------------------------------------- |
-| [SYNC-PACKS](sync.md#sync-packs)         | done  | —       | [sync](../scripts/sync), [sync.t](../perl/t/sync.t)                                                              |
-| [SYNC-IDENTITY](sync.md#sync-identity)   | done  | —       | [org/sync](../org/sync), [sync.t](../perl/t/sync.t)                                                              |
-| [SYNC-CHECK](sync.md#sync-check)         | done  | —       | [sync.t](../perl/t/sync.t), [org.t](../perl/t/org.t)                                                             |
-| [SYNC-BOOTSTRAP](sync.md#sync-bootstrap) | done  | —       | [deps](../org/sync/scripts/deps), [deps.t](../perl/t/deps.t)                                                     |
-| [WFL-ACTIONS](workflows.md#wfl-actions)  | done  | —       | [workflows.t](../org/sync/t/ci/workflows.t)                                                                      |
-| [WFL-REUSE](workflows.md#wfl-reuse)      | done  | —       | [perl-build.yml](../.github/workflows/perl-build.yml), [perl-release.yml](../.github/workflows/perl-release.yml) |
-| [WFL-CACHE](workflows.md#wfl-cache)      | done  | —       | [setup-perl](../perl/actions/setup-perl/action.yml), [setup-perl.t](../perl/t/setup-perl.t)                      |
+| Unit                                     | State   | Done by | Note                                                                                                                     |
+| ---------------------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| [SYNC-PACKS](sync.md#sync-packs)         | done    | —       | [sync](../scripts/sync), [sync.t](../perl/t/sync.t)                                                                      |
+| [SYNC-IDENTITY](sync.md#sync-identity)   | done    | —       | [org/sync](../org/sync), [sync.t](../perl/t/sync.t)                                                                      |
+| [SYNC-CHECK](sync.md#sync-check)         | partial | —       | The root dispatcher and fragment copies of SYNC-CHECK-4 are absent. [sync.t](../perl/t/sync.t), [org.t](../perl/t/org.t) |
+| [SYNC-BOOTSTRAP](sync.md#sync-bootstrap) | done    | —       | [deps](../org/sync/scripts/deps), [deps.t](../perl/t/deps.t)                                                             |
+| [MK-VERBS](make.md#mk-verbs)             | open    | —       | —                                                                                                                        |
+| [MK-COMPOSE](make.md#mk-compose)         | open    | —       | —                                                                                                                        |
+| [MK-DISPATCH](make.md#mk-dispatch)       | open    | —       | —                                                                                                                        |
+| [MK-SUBSET](make.md#mk-subset)           | open    | —       | —                                                                                                                        |
+| [MK-LOCAL](make.md#mk-local)             | open    | —       | —                                                                                                                        |
+| [WFL-ACTIONS](workflows.md#wfl-actions)  | done    | —       | [workflows.t](../org/sync/t/ci/workflows.t)                                                                              |
+| [WFL-REUSE](workflows.md#wfl-reuse)      | done    | —       | [perl-build.yml](../.github/workflows/perl-build.yml), [perl-release.yml](../.github/workflows/perl-release.yml)         |
+| [WFL-CACHE](workflows.md#wfl-cache)      | done    | —       | [setup-perl](../perl/actions/setup-perl/action.yml), [setup-perl.t](../perl/t/setup-perl.t)                              |
 
 ## Update protocol
 
@@ -44,6 +49,7 @@ The drift gate maps each document to the code that implements it.
 | Document     | Roots                                                                  |
 | ------------ | ---------------------------------------------------------------------- |
 | sync.md      | `scripts/sync`, `org/sync`, `perl/sync`, `perl/t`                      |
+| make.md      | `org/sync`, `perl/sync`, `perl/t`                                      |
 | workflows.md | `.github/workflows`, `actions`, `perl/actions`, `org/sync/t`, `perl/t` |
 
 ## Retired IDs

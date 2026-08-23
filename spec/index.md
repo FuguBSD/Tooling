@@ -58,10 +58,11 @@ unit, and the unit ID is the anchor in upper case:
 Each document specifies one area of work. The code of a document prefixes the
 IDs of its units.
 
-| Code | Document                     | Area                             |
-| ---- | ---------------------------- | -------------------------------- |
-| SYNC | [sync.md](sync.md)           | The sync mechanism and the packs |
-| WFL  | [workflows.md](workflows.md) | Actions and reusable workflows   |
+| Code | Document                     | Area                               |
+| ---- | ---------------------------- | ---------------------------------- |
+| SYNC | [sync.md](sync.md)           | The sync mechanism and the packs   |
+| MK   | [make.md](make.md)           | The make interface and dispatchers |
+| WFL  | [workflows.md](workflows.md) | Actions and reusable workflows     |
 
 ## Governance documents
 
