@@ -17,7 +17,8 @@ contracts.
 - `org/sync/` — files synced verbatim into every consumer: the `GNUmakefile`
   dispatcher, `mk/org.mk`, the instruction files,
   `scripts/{deps,ftp,spec-check,ste-lint}`, `t/ci/workflows.t`, the merge-it,
-  pull-it, and review-panel skills, the pull-request template, and `.prettierrc`
+  pull-it, and review-panel skills, the pull-request template, `.prettierrc`,
+  and `.gitignore`
 - `perl/sync/` — files synced into the Perl consumers: `mk/perl.mk`,
   `scripts/dist`, `lib/CLAUDE.md`, `.perlcriticrc`, and `.perltidyrc`
 - `GNUmakefile`, `mk/` — the root copies of the dispatcher and the fragments,
