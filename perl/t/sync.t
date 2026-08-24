@@ -137,6 +137,21 @@ my $dir = consumer();
 	    or diag($output);
 }
 
+# A consumer that adds the infra pack gets the infrastructure
+# instructions on top of the org pack.
+{
+	my $infra = consumer( 'org', 'infra' );
+	my ( $exit, $output ) = run_in($infra);
+	is( $exit, 0, 'sync into an infra consumer works' ) or diag($output);
+
+	ok( -f "$infra/infra/CLAUDE.md", 'the infra instructions arrive' );
+	ok( -f "$infra/scripts/deps",    'the org pack arrives too' );
+	ok( !-f "$infra/scripts/dist",   'and no Perl files arrive' );
+
+	( $exit, $output ) = run_in( $infra, '--check' );
+	is( $exit, 0, 'a fresh infra sync passes --check' ) or diag($output);
+}
+
 # A consumer with no sync.pack line gets the org pack.
 {
 	my $bare = tempdir( CLEANUP => 1 );

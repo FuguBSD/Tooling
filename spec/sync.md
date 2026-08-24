@@ -20,6 +20,9 @@ packs, each file at the same relative path.
 - **SYNC-PACKS-4** — With no `sync.pack` line, sync must deliver the `org` pack
   only.
 - **SYNC-PACKS-5** — A relative path must not exist in two packs.
+- **SYNC-PACKS-6** — The `infra` pack must live at `infra/sync/` and must serve
+  the consumers with OpenTofu code. It holds the shared infrastructure
+  instructions, at `infra/CLAUDE.md` of the consumer.
 
 <a id="sync-identity"></a>
 
