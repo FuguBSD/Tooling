@@ -91,6 +91,10 @@ strings, and a bucket takes a map. Build both shapes from one map in
 | `<code>:run-id`    | `<code>:run-id=8891fa2c`              | Ties a resource to one CI run       |
 | `<code>:expires`   | `<code>:expires=2026-08-02T18:00:00Z` | The hard end of the lease, in UTC   |
 
+An ad-hoc resource — a probe, an experiment — must carry
+`<code>:lifecycle=ephemeral` and a near `<code>:expires`. The watchdog is then
+the backstop. Delete the resource in the same session.
+
 ## Buckets
 
 The consumer specification states the bucket set and the versioning of each
@@ -147,6 +151,13 @@ and must not declare an API key.
   dispatch uses it.
 - **Train.** Its policy permits Object Storage in the project, and nothing else.
   Each of its keys lives for one campaign.
+- **Agent.** An agent holds its key in the `.env` of its checkout. The key takes
+  the smallest scope that the task needs, and a short expiry.
+
+Each checkout holds its own `.env`, with its own key. Run each command from the
+checkout of the target project. A command from an other checkout uses an other
+key, and its output can look correct. Treat an authentication failure first as
+an expired key.
 
 CI must export exactly one credential set, as environment variables. The
 `provider` block must not set `access_key`, `secret_key`, or `project_id`. IAM
@@ -215,6 +226,18 @@ watchdog must report, and must not destroy, a resource with no `<code>:managed`
 tag. The watchdog must never touch a resource tagged
 `<code>:lifecycle=persistent`.
 
+## Verification
+
+- Trust the exit code of a CLI call, not the shape of its output. An error
+  response can be valid JSON.
+- Confirm each field path against real output before you parse it. A wrong path
+  falls through a default silently.
+- Confirm each removal with a read. A not-found result proves the removal.
+- Do not assume a permission or a quota from a document. Probe the platform with
+  an ephemeral resource, and record the result in the consumer runbook.
+- An error from local name resolution proves nothing about platform access. Only
+  a platform response proves authorization.
+
 ## Teardown
 
 `tofu destroy` alone is not a teardown. A cancelled apply can create a resource
@@ -225,6 +248,10 @@ reports each resource with no `<code>:managed` tag.
 A destroy of `infra/train` must remove the server, the scratch volume, the root
 volume, and the routed IPv4 address. Scaleway bills a reserved IPv4, attached or
 not.
+
+A resource in a transient state refuses a delete, and it bills during the wait.
+Wait for a stable state, and delete it then. Test the delete path on a cheap
+resource before you create an expensive one.
 
 A full teardown runs in this order: `train`, `dev`, `image`, `persistent`. A
 destroy of `persistent` surrenders the bucket names. Only a human runs it.
