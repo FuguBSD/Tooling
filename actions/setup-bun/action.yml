@@ -1,0 +1,27 @@
+name: Setup bun
+description:
+  Install a pinned bun release. The format-md job runs prettier through bunx.
+
+inputs:
+  version:
+    description: The bun version to install.
+    required: false
+    default: "1.4.0"
+
+runs:
+  using: composite
+  steps:
+    # A pinned release zip, not a third-party action. CI uses no
+    # third-party action, and t/ci/workflows.t enforces it. bunx is
+    # a symlink to bun, as the upstream installer makes it.
+    - name: Install bun
+      shell: bash
+      run: |
+        mkdir -p "$HOME/.local/bin"
+        curl -LsSf \
+          "https://github.com/oven-sh/bun/releases/download/bun-v${{ inputs.version }}/bun-linux-x64.zip" \
+          -o /tmp/bun.zip
+        unzip -q -o /tmp/bun.zip -d /tmp
+        install -m 755 /tmp/bun-linux-x64/bun "$HOME/.local/bin/bun"
+        ln -sf bun "$HOME/.local/bin/bunx"
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"

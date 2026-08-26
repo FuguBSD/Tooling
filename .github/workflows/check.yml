@@ -17,6 +17,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup bun
+        uses: ./actions/setup-bun
+
       - name: Check Markdown, JSON and YAML formatting
         run: make format-md
 

@@ -28,7 +28,7 @@ contracts.
   `web/footer.body.html`
 - `GNUmakefile`, `mk/` — the root copies of the dispatcher and the fragments,
   and `mk/local.mk`, the consumer hook of this repository
-- `actions/` — language-neutral composite actions (`gh-release`)
+- `actions/` — language-neutral composite actions (`gh-release`, `setup-bun`)
 - `perl/actions/` — Perl composite actions (`setup-perl`, `pause-upload`)
 - `perl/t/` — the tests of the canonical tooling
 - `scripts/sync` — copies the selected packs into a consumer; `--check` is the

@@ -22,8 +22,8 @@ portable subset, and the consumer hook.
 - **MK-VERBS-4** — The target names `deps`, `deps-test`, and `deps-develop` must
   not change. The setup-perl action computes them from its `dependencies` input.
 - **MK-VERBS-5** — `format-md` and `format-md-fix` must not join an aggregate.
-  prettier runs through npx, and no deps manifest provides node. CI runs
-  `format-md` in its own job.
+  prettier runs through bunx, and no deps manifest provides bun. CI runs
+  `format-md` in its own job, after the setup-bun action.
 
 `all`, `spec-check`, `ste-lint`, `dist`, and the `deps` targets are plain
 targets, not verbs.
