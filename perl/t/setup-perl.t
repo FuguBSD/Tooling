@@ -292,6 +292,7 @@ subtest 'workflows use no third-party action' => sub {
 	push @files, glob("$workflow/*.yml");
 	push @files, glob("$root/actions/*/action.yml");
 	push @files, glob("$root/perl/actions/*/action.yml");
+	push @files, glob("$root/python/actions/*/action.yml");
 	ok( scalar @files, 'workflow and action files found' );
 
 	my @violations;

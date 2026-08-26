@@ -1,0 +1,16 @@
+# ruff.toml: canonical copy, owned by FuguBSD/Tooling.
+# The shared lint and format configuration of the python pack. Ruff
+# prefers this file over the [tool.ruff] section of pyproject.toml,
+# so a consumer holds no such section.
+#
+# Markdown belongs to prettier: one formatter per language. Without
+# the exclusion, Ruff formats the python fences of every .md file.
+#
+# Ruff must not descend into the pack tree of the Tooling checkout: a
+# cache directory next to this canonical copy would join the pack
+# manifest of scripts/sync. The path exists only in Tooling, so the
+# exclusion is inert in every consumer.
+extend-exclude = ["*.md", "python/sync"]
+
+target-version = "py312"
+line-length = 100

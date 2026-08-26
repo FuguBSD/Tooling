@@ -64,14 +64,35 @@ for my $path (@copies) {
 		"$path equals the canon" );
 }
 
-# SYNC-CHECK-4: the root holds a copy of the dispatcher and of each
-# included pack fragment. The walk above covers the GNUmakefile and
-# mk/org.mk; the perl fragment lives in the perl pack. The path
-# Makefile stays free for the BSD dispatcher (MK-DISPATCH-4).
+# SYNC-CHECK-4: the root holds a copy of the dispatcher, of each
+# included pack fragment, and of each pack configuration that the
+# root gates read. The walk above covers the GNUmakefile and
+# mk/org.mk; the perl and python fragments live in their packs. The
+# path Makefile stays free for the BSD dispatcher (MK-DISPATCH-4).
 is(
 	_slurp("$root/mk/perl.mk"),
 	_slurp("$root/perl/sync/mk/perl.mk"),
 	'mk/perl.mk equals the canon'
+);
+is(
+	_slurp("$root/mk/python.mk"),
+	_slurp("$root/python/sync/mk/python.mk"),
+	'mk/python.mk equals the canon'
+);
+is(
+	_slurp("$root/ruff.toml"),
+	_slurp("$root/python/sync/ruff.toml"),
+	'ruff.toml equals the canon'
+);
+is(
+	_slurp("$root/.perlcriticrc"),
+	_slurp("$root/perl/sync/.perlcriticrc"),
+	'.perlcriticrc equals the canon'
+);
+is(
+	_slurp("$root/.perltidyrc"),
+	_slurp("$root/perl/sync/.perltidyrc"),
+	'.perltidyrc equals the canon'
 );
 ok( !-f "$root/Makefile", 'the root holds no Makefile' );
 

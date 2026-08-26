@@ -26,10 +26,14 @@ contracts.
 - `web/sync/` — files synced into the consumers with a fuguweb site: the shared
   website instructions, `web/CLAUDE.md`, and the shared footer,
   `web/footer.body.html`
+- `python/sync/` — files synced into the consumers with Python code:
+  `mk/python.mk`, `ruff.toml`, the Python style rules, `packages/CLAUDE.md`, and
+  the consumer test `t/ci/python.t`
 - `GNUmakefile`, `mk/` — the root copies of the dispatcher and the fragments,
   and `mk/local.mk`, the consumer hook of this repository
 - `actions/` — language-neutral composite actions (`gh-release`, `setup-bun`)
 - `perl/actions/` — Perl composite actions (`setup-perl`, `pause-upload`)
+- `python/actions/` — Python composite actions (`setup-uv`)
 - `perl/t/` — the tests of the canonical tooling
 - `scripts/sync` — copies the selected packs into a consumer; `--check` is the
   CI drift gate
@@ -47,21 +51,26 @@ From a consumer repository root, with this repository as a sibling checkout:
 
 A consumer selects its packs with `sync.pack` lines in `.toolingrc`: every
 consumer takes `org`, a Perl repository adds `perl`, a repository with OpenTofu
-code adds `infra`, and a repository with a fuguweb site adds `web`. A consumer's
-`check.yml` runs the same `--check` as a drift gate. A consumer's `release.yml`,
-`build.yml`, and `publish.yml` are thin callers of the reusable workflows.
+code adds `infra`, a repository with a fuguweb site adds `web`, and a repository
+with Python code adds `python`. A consumer's `check.yml` runs the same `--check`
+as a drift gate. A consumer's `release.yml`, `build.yml`, and `publish.yml` are
+thin callers of the reusable workflows.
 
 ## Commands
 
     make deps-test   # install Perl::Critic and Perl::Tidy
-    make check       # lint + format + test + spec-check + ste-lint
+    make setup       # install the development tools into .venv
+    make check       # lint + format + test + spec-check + ste-lint + lock-py
     make format-md   # Markdown/JSON/YAML formatting
     prove -l perl/t/sync.t   # one test file
+
+The python gates run uv. The operator installs uv, for example from Homebrew. No
+deps manifest provides it.
 
 ## Commit scopes
 
 `sync`, `deps`, `dist`, `ftp`, `spec-check`, `ste-lint`, `actions`, `workflows`,
-`org`, `perl`, `spec`.
+`org`, `perl`, `python`, `spec`.
 
 ## License
 

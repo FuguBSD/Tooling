@@ -25,8 +25,9 @@
 # path of the consumer, with the file mode of the source. A pack is
 # one sync tree of the Tooling checkout: `org` is org/sync/ and every
 # consumer takes it, `perl` is perl/sync/ for the Perl repositories,
-# `infra` is infra/sync/ for the repositories with OpenTofu code, and
-# `web` is web/sync/ for the repositories with a fuguweb site.
+# `infra` is infra/sync/ for the repositories with OpenTofu code,
+# `web` is web/sync/ for the repositories with a fuguweb site, and
+# `python` is python/sync/ for the repositories with Python code.
 # The consumer selects its packs with `sync.pack` lines in .toolingrc;
 # with no such line the consumer takes the org pack only. With
 # --check the script changes nothing: it reports every file that is
@@ -62,10 +63,11 @@ my $tooling = Cwd::abs_path(
 	) );
 
 my %PACKS = (
-	org   => File::Spec->catdir( $tooling, 'org',   'sync' ),
-	perl  => File::Spec->catdir( $tooling, 'perl',  'sync' ),
-	infra => File::Spec->catdir( $tooling, 'infra', 'sync' ),
-	web   => File::Spec->catdir( $tooling, 'web',   'sync' ),
+	org    => File::Spec->catdir( $tooling, 'org',    'sync' ),
+	perl   => File::Spec->catdir( $tooling, 'perl',   'sync' ),
+	infra  => File::Spec->catdir( $tooling, 'infra',  'sync' ),
+	web    => File::Spec->catdir( $tooling, 'web',    'sync' ),
+	python => File::Spec->catdir( $tooling, 'python', 'sync' ),
 );
 
 my $target = getcwd();

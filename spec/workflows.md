@@ -1,8 +1,8 @@
 # Actions and reusable workflows
 
 This document specifies the CI building blocks that every FuguBSD repository
-shares: the action policy, the reusable workflows, the web publish workflow, and
-the setup-perl cache.
+shares. It covers the action policy, the reusable workflows, the web publish
+workflow, the setup-perl cache, and the setup-uv cache.
 
 <a id="wfl-actions"></a>
 
@@ -48,3 +48,18 @@ the setup-perl cache.
   `scripts/deps`, and `org/sync/scripts/deps`, and nothing else.
 - **WFL-CACHE-2** — The test `perl/t/setup-perl.t` must stay in sync with the
   cache key.
+
+<a id="wfl-uv"></a>
+
+## The setup-uv cache
+
+- **WFL-UV-1** — The setup-uv action must install a pinned uv release from its
+  tarball, and must run `uv sync --locked` on a cache hit and on a miss. The
+  sync must fail on a stale lockfile, and must not rewrite it: a repair here
+  would blind every lockfile gate after the action.
+- **WFL-UV-2** — The setup-uv cache key must hash `uv.lock`, `.python-version`,
+  and `pyproject.toml`, and nothing else. The key must also name the repository,
+  the uv release, and the machine architecture, because the environment holds
+  platform wheels.
+- **WFL-UV-3** — The test `perl/t/setup-uv.t` must stay in sync with the cache
+  key.

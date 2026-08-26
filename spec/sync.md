@@ -27,6 +27,12 @@ packs, each file at the same relative path.
   consumers with a fuguweb site. It holds the shared website instructions, at
   `web/CLAUDE.md` of the consumer. It also holds the shared footer, at
   `web/footer.body.html` of the consumer.
+- **SYNC-PACKS-8** — The `python` pack must live at `python/sync/` and must
+  serve the consumers with Python code. It holds the shared Ruff configuration
+  `ruff.toml`, the make fragment `mk/python.mk`, the Python style rules, at
+  `packages/CLAUDE.md` of the consumer, and the consumer test `t/ci/python.t`.
+  The consumer keeps `pyproject.toml`, `.python-version`, and `uv.lock`, per
+  SYNC-IDENTITY.
 
 <a id="sync-identity"></a>
 
@@ -50,8 +56,8 @@ packs, each file at the same relative path.
   equal the canon byte for byte. `scripts/` and `t/` have no root copies: the
   scripts run in place, and the tests serve the consumers.
 - **SYNC-CHECK-4** — The root of this repository must hold a copy of the
-  dispatcher and of each included pack fragment. Each copy must equal the canon
-  byte for byte.
+  dispatcher, of each included pack fragment, and of each pack configuration
+  that the root gates read. Each copy must equal the canon byte for byte.
 
 <a id="sync-bootstrap"></a>
 

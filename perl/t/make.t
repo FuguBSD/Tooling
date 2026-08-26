@@ -27,7 +27,10 @@ my $root = "$RealBin/../..";
 my $sync = "$root/scripts/sync";
 
 my $DISPATCHER = "$root/org/sync/GNUmakefile";
-my @FRAGMENTS  = ( "$root/org/sync/mk/org.mk", "$root/perl/sync/mk/perl.mk" );
+my @FRAGMENTS  = (
+	"$root/org/sync/mk/org.mk", "$root/perl/sync/mk/perl.mk",
+	"$root/python/sync/mk/python.mk"
+);
 
 sub _slurp ($path)
 {
@@ -98,7 +101,8 @@ sub _tree_digest ($dir)
 		[
 			'-include mk/local.mk',
 			'include mk/org.mk',
-			'-include mk/perl.mk'
+			'-include mk/perl.mk',
+			'-include mk/python.mk'
 		],
 		'the include list is fixed'
 	);
@@ -182,10 +186,18 @@ is( join( "\n", _subset_violations("$root/mk/local.mk") ),
 	q{}, 'mk/local.mk satisfies the portable subset' );
 
 # No pack holds the path Makefile or the consumer hook mk/local.mk.
-for my $pack ( "$root/org/sync", "$root/perl/sync" ) {
+for my $pack ( "$root/org/sync", "$root/perl/sync", "$root/python/sync" ) {
 	ok( !-e "$pack/Makefile",    "$pack holds no Makefile" );
 	ok( !-e "$pack/mk/local.mk", "$pack holds no mk/local.mk" );
 }
+
+# MK-PYTHON-3: ruff.toml is the one Ruff configuration. The one
+# pyproject.toml of this repository holds no [tool.ruff] section, and
+# no subtable such as [tool.ruff.lint]. The synced t/ci/python.t
+# holds every consumer to the same rule.
+unlike( _slurp("$root/pyproject.toml"),
+	qr/^\[tool\.ruff[\].]/m,
+	'pyproject.toml holds no [tool.ruff] section' );
 
 # The fixture consumer. The local hook exists before the first sync,
 # and holds one override, one stub, and one repo-only gate.
@@ -337,6 +349,48 @@ for my $target (qw(format-md format-md-fix deps deps-test deps-develop)) {
 		is( $exit, 0, "make $verb resolves without the perl pack" )
 		    or diag($output);
 	}
+}
+
+# A python consumer serves the uv targets: the fragment appends them
+# to the aggregates, and check runs the lockfile gate. The dry run
+# proves the wiring without uv.
+{
+	my $py = tempdir( CLEANUP => 1 );
+	write_file( "$py/.toolingrc", "sync.pack org\nsync.pack python\n" );
+
+	my ( $exit, $output ) = run_in( $py, $sync );
+	is( $exit, 0, 'sync into a python consumer works' ) or diag($output);
+	ok( -f "$py/mk/python.mk", 'the python fragment arrives' );
+
+	( $exit, $output ) = run_in( $py, 'make -n check' );
+	is( $exit, 0, 'make check resolves with the python pack' )
+	    or diag($output);
+	like( $output, qr/uv lock --check/, 'check runs lock-py' );
+	like( $output, qr/uv run --locked ruff check \./,
+		'check runs lint-py' );
+	like(
+		$output,
+		qr/uv run --locked ruff format --check \./,
+		'check runs format-py'
+	);
+
+	( $exit, $output ) = run_in( $py, 'make -n setup' );
+	is( $exit, 0, 'make setup resolves' ) or diag($output);
+	like( $output, qr/uv sync/, 'and runs uv sync' );
+
+	# Every uv run passes --locked: a bare uv run rewrites a stale
+	# uv.lock, so a read target would write (MK-VERBS-1). The fix
+	# target writes only what format-py reports, so no lint autofix
+	# runs here.
+	( $exit, $output ) = run_in( $py, 'make -n format-fix' );
+	is( $exit, 0, 'make format-fix resolves' ) or diag($output);
+	like( $output, qr/uv run --locked ruff format \./, 'it formats' );
+	unlike( $output, qr/ruff check --fix/, 'and writes no lint fix' );
+	unlike(
+		$output,
+		qr/uv run ruff/,
+		'and no uv run goes without --locked'
+	);
 }
 
 # format reads and format-fix writes (MK-VERBS-1).

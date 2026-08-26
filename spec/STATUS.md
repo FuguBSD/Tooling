@@ -20,21 +20,23 @@ phase applies.
 
 ## Units
 
-| Unit                                     | State   | Done by | Note                                                                                                                         |
-| ---------------------------------------- | ------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| [SYNC-PACKS](sync.md#sync-packs)         | done    | —       | [sync](../scripts/sync), [sync.t](../perl/t/sync.t)                                                                          |
-| [SYNC-IDENTITY](sync.md#sync-identity)   | done    | —       | [org/sync](../org/sync), [sync.t](../perl/t/sync.t)                                                                          |
-| [SYNC-CHECK](sync.md#sync-check)         | done    | —       | [org.t](../perl/t/org.t), [sync.t](../perl/t/sync.t)                                                                         |
-| [SYNC-BOOTSTRAP](sync.md#sync-bootstrap) | done    | —       | [deps](../org/sync/scripts/deps), [deps.t](../perl/t/deps.t)                                                                 |
-| [MK-VERBS](make.md#mk-verbs)             | done    | —       | [org.mk](../org/sync/mk/org.mk), [perl.mk](../perl/sync/mk/perl.mk), [make.t](../perl/t/make.t)                              |
-| [MK-COMPOSE](make.md#mk-compose)         | done    | —       | [org.mk](../org/sync/mk/org.mk), [perl.mk](../perl/sync/mk/perl.mk), [make.t](../perl/t/make.t)                              |
-| [MK-DISPATCH](make.md#mk-dispatch)       | partial | —       | The BSD dispatcher `Makefile` of MK-DISPATCH-4 is absent. [GNUmakefile](../org/sync/GNUmakefile), [make.t](../perl/t/make.t) |
-| [MK-SUBSET](make.md#mk-subset)           | done    | —       | [org.mk](../org/sync/mk/org.mk), [perl.mk](../perl/sync/mk/perl.mk), [make.t](../perl/t/make.t)                              |
-| [MK-LOCAL](make.md#mk-local)             | done    | —       | [GNUmakefile](../org/sync/GNUmakefile), [local.mk](../mk/local.mk), [make.t](../perl/t/make.t)                               |
-| [WFL-ACTIONS](workflows.md#wfl-actions)  | done    | —       | [workflows.t](../org/sync/t/ci/workflows.t)                                                                                  |
-| [WFL-REUSE](workflows.md#wfl-reuse)      | done    | —       | [perl-build.yml](../.github/workflows/perl-build.yml), [perl-release.yml](../.github/workflows/perl-release.yml)             |
-| [WFL-WEB](workflows.md#wfl-web)          | done    | —       | [web-publish.yml](../.github/workflows/web-publish.yml)                                                                      |
-| [WFL-CACHE](workflows.md#wfl-cache)      | done    | —       | [setup-perl](../perl/actions/setup-perl/action.yml), [setup-perl.t](../perl/t/setup-perl.t)                                  |
+| Unit                                     | State   | Done by | Note                                                                                                                                      |
+| ---------------------------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| [SYNC-PACKS](sync.md#sync-packs)         | done    | —       | [sync](../scripts/sync), [sync.t](../perl/t/sync.t)                                                                                       |
+| [SYNC-IDENTITY](sync.md#sync-identity)   | done    | —       | [org/sync](../org/sync), [sync.t](../perl/t/sync.t)                                                                                       |
+| [SYNC-CHECK](sync.md#sync-check)         | done    | —       | [org.t](../perl/t/org.t), [sync.t](../perl/t/sync.t)                                                                                      |
+| [SYNC-BOOTSTRAP](sync.md#sync-bootstrap) | done    | —       | [deps](../org/sync/scripts/deps), [deps.t](../perl/t/deps.t)                                                                              |
+| [MK-VERBS](make.md#mk-verbs)             | done    | —       | [org.mk](../org/sync/mk/org.mk), [perl.mk](../perl/sync/mk/perl.mk), [python.mk](../python/sync/mk/python.mk), [make.t](../perl/t/make.t) |
+| [MK-COMPOSE](make.md#mk-compose)         | done    | —       | [org.mk](../org/sync/mk/org.mk), [perl.mk](../perl/sync/mk/perl.mk), [python.mk](../python/sync/mk/python.mk), [make.t](../perl/t/make.t) |
+| [MK-DISPATCH](make.md#mk-dispatch)       | partial | —       | The BSD dispatcher `Makefile` of MK-DISPATCH-4 is absent. [GNUmakefile](../org/sync/GNUmakefile), [make.t](../perl/t/make.t)              |
+| [MK-SUBSET](make.md#mk-subset)           | done    | —       | [org.mk](../org/sync/mk/org.mk), [perl.mk](../perl/sync/mk/perl.mk), [python.mk](../python/sync/mk/python.mk), [make.t](../perl/t/make.t) |
+| [MK-PYTHON](make.md#mk-python)           | done    | —       | [python.mk](../python/sync/mk/python.mk), [python.t](../python/sync/t/ci/python.t), [make.t](../perl/t/make.t)                            |
+| [MK-LOCAL](make.md#mk-local)             | done    | —       | [GNUmakefile](../org/sync/GNUmakefile), [local.mk](../mk/local.mk), [make.t](../perl/t/make.t)                                            |
+| [WFL-ACTIONS](workflows.md#wfl-actions)  | done    | —       | [workflows.t](../org/sync/t/ci/workflows.t)                                                                                               |
+| [WFL-REUSE](workflows.md#wfl-reuse)      | done    | —       | [perl-build.yml](../.github/workflows/perl-build.yml), [perl-release.yml](../.github/workflows/perl-release.yml)                          |
+| [WFL-WEB](workflows.md#wfl-web)          | done    | —       | [web-publish.yml](../.github/workflows/web-publish.yml)                                                                                   |
+| [WFL-CACHE](workflows.md#wfl-cache)      | done    | —       | [setup-perl](../perl/actions/setup-perl/action.yml), [setup-perl.t](../perl/t/setup-perl.t)                                               |
+| [WFL-UV](workflows.md#wfl-uv)            | done    | —       | [setup-uv](../python/actions/setup-uv/action.yml), [setup-uv.t](../perl/t/setup-uv.t)                                                     |
 
 ## Update protocol
 
@@ -47,11 +49,11 @@ phase applies.
 
 The drift gate maps each document to the code that implements it.
 
-| Document     | Roots                                                                                                                 |
-| ------------ | --------------------------------------------------------------------------------------------------------------------- |
-| sync.md      | `scripts/sync`, `org/sync`, `perl/sync`, `infra/sync`, `web/sync`, `perl/t`, `GNUmakefile`, `mk/org.mk`, `mk/perl.mk` |
-| make.md      | `org/sync`, `perl/sync`, `perl/t`, `GNUmakefile`, `mk/org.mk`, `mk/perl.mk`                                           |
-| workflows.md | `.github/workflows`, `actions`, `perl/actions`, `org/sync/t`, `perl/t`                                                |
+| Document     | Roots                                                                                                                                                             |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| sync.md      | `scripts/sync`, `org/sync`, `perl/sync`, `infra/sync`, `web/sync`, `python/sync`, `perl/t`, `GNUmakefile`, `mk/org.mk`, `mk/perl.mk`, `mk/python.mk`, `ruff.toml` |
+| make.md      | `org/sync`, `perl/sync`, `python/sync`, `perl/t`, `GNUmakefile`, `mk/org.mk`, `mk/perl.mk`, `mk/python.mk`                                                        |
+| workflows.md | `.github/workflows`, `actions`, `perl/actions`, `python/actions`, `org/sync/t`, `perl/t`                                                                          |
 
 ## Retired IDs
 

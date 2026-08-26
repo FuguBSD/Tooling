@@ -1,0 +1,138 @@
+name: "Setup uv with the project environment"
+description:
+  "Install a pinned uv from its release tarball, with the virtual environment
+  cached"
+
+# This is the canonical copy of the action, shared by every FuguBSD
+# repository with Python code. A consumer repository references it as
+# FuguBSD/Tooling/python/actions/setup-uv@main. The steps of a
+# composite action run in the caller's workspace, so pyproject.toml,
+# .python-version and uv.lock below are always the caller's own.
+#
+# The install uses a pinned release tarball, not an action. CI uses no
+# third-party action, so astral-sh/setup-uv stays out. Linux only:
+# every runner these repositories use is Ubuntu, x86_64 or arm64.
+
+inputs:
+  version:
+    description:
+      "The uv release to install. The release names a tag of astral-sh/uv, and
+      the cache key carries it."
+    required: false
+    default: "0.8.17"
+
+outputs:
+  cache-hit:
+    description:
+      "true when the restore step hit the exact key, so the sync had nothing new
+      to resolve"
+    value: ${{ steps.restore.outputs.cache-hit }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install uv
+      shell: bash
+      env:
+        UV_VERSION: ${{ inputs.version }}
+      run: |
+        # Fail closed. Fail first. A malformed version composes a
+        # download URL that returns an error page, not a tarball, and
+        # tar would fail many lines from the cause.
+        case "$UV_VERSION" in
+        *[!0-9.]* | "")
+          echo "setup-uv: '$UV_VERSION' is not a release number" >&2
+          exit 1
+          ;;
+        esac
+
+        # The tarball name carries the machine architecture. The
+        # runners are x86_64 or arm64, and anything else fails here.
+        case "$(uname -m)" in
+        x86_64)
+          arch=x86_64
+          ;;
+        aarch64 | arm64)
+          arch=aarch64
+          ;;
+        *)
+          echo "setup-uv: unsupported architecture $(uname -m)" >&2
+          exit 1
+          ;;
+        esac
+
+        mkdir -p "$HOME/.local/bin"
+        curl -LsSf "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-${arch}-unknown-linux-gnu.tar.gz" \
+          | tar -xz -C /tmp
+        install -m 755 "/tmp/uv-${arch}-unknown-linux-gnu/uv" "$HOME/.local/bin/uv"
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+    - name: Compute the cache key
+      id: cache
+      shell: bash
+      run: |
+        # This step computes the key once, and both the restore and the
+        # save step below read it. The cache API rejects a write to an
+        # existing key. Thus two copies of this expression that drift
+        # apart would miss on every run and then fail to store the
+        # result.
+        #
+        # The key covers exactly what decides the contents of .venv.
+        # That is the lockfile, the interpreter pin, the project
+        # manifest, the uv release that resolves them, and the machine
+        # architecture, because the environment holds platform wheels.
+        # Nothing else goes in.
+        #
+        # To force a cold rebuild, bump the v<N> below. As an
+        # alternative, delete the cache from Actions -> Caches.
+        #
+        # The Actions cache is scoped to one repository, so the
+        # repository name isolates nothing. It makes the entry
+        # readable in the cache list, and it matches the setup-perl
+        # key shape.
+        machine=$(uname -m)
+        prefix="${{ github.event.repository.name }}-venv-v1-uv${{ inputs.version }}-$machine-"
+
+        # Bind the hash to its own variable first. An interpolation of
+        # the expression straight after $prefix makes the digest part
+        # of the variable NAME. The key then comes out empty, and
+        # actions/cache rejects it.
+        hash="${{ hashFiles('uv.lock', '.python-version', 'pyproject.toml') }}"
+
+        echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
+        echo "key=$prefix$hash" >> "$GITHUB_OUTPUT"
+
+    - name: Restore the virtual environment
+      id: restore
+      # .venv/ is the whole of what uv sync installs. The cache
+      # deliberately omits the uv-managed interpreter: the download is
+      # small, and a stale interpreter must not survive a pin bump.
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ github.workspace }}/.venv
+        key: ${{ steps.cache.outputs.key }}
+        # A near miss still restores an environment that the same uv
+        # built from an older manifest. The sync below reconciles it,
+        # and the save step stores the result under the new key.
+        restore-keys: ${{ steps.cache.outputs.prefix }}
+
+    - name: Install the environment
+      shell: bash
+      # Unconditional, cache hit or not. uv sync over a complete
+      # environment is a fast no-op, so this step also makes sure that
+      # a restored environment is usable. The --locked flag makes a
+      # stale uv.lock fail this step. A bare sync would rewrite the
+      # lockfile in the workspace, and every lockfile gate after this
+      # action would then pass on drift it can no longer see.
+      run: uv sync --locked
+
+    - name: Save the virtual environment
+      # Only on a miss. An exact hit has nothing new to store, and the
+      # cache API rejects a write to an existing key. No `always()`
+      # here. A failed sync must not become the cached environment for
+      # this key.
+      if: steps.restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ github.workspace }}/.venv
+        key: ${{ steps.cache.outputs.key }}
