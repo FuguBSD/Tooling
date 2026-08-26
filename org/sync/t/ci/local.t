@@ -1,13 +1,14 @@
 #!/usr/bin/env perl
 # ex:ts=8 sw=4:
+# The org pack of FuguBSD/Tooling owns this file. Do not edit a
+# synced copy. Edit the canonical copy in FuguBSD/Tooling.
+#
 # Guards for the consumer hook mk/local.mk
 #
-# This test is a synced copy, owned by FuguBSD/Tooling at
-# org/sync/t/ci/local.t. mk/local.mk must not define a target that a
-# synced fragment defines (MK-LOCAL-4). On a second recipe for one
-# target, make prints only a warning, and the include order picks the
-# recipe. The test reads the make files as text, so it runs without a
-# build.
+# mk/local.mk must not define a target that a synced fragment
+# defines (MK-LOCAL-4). On a second recipe for one target, make
+# prints only a warning, and the include order picks the recipe. The
+# test reads the make files as text, so it runs without a build.
 
 use v5.36;
 use Test::More;

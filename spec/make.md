@@ -75,7 +75,9 @@ A dispatcher holds the default goal, the include chain, and the generic verbs,
 and nothing else.
 
 ```make
-# GNUmakefile: canonical copy, owned by FuguBSD/Tooling.
+# The org pack of FuguBSD/Tooling owns this file. Do not edit a
+# synced copy. Edit the canonical copy in FuguBSD/Tooling.
+
 all: check
 
 -include mk/local.mk

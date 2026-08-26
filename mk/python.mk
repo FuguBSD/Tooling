@@ -1,4 +1,6 @@
-# mk/python.mk: canonical copy, owned by FuguBSD/Tooling.
+# The python pack of FuguBSD/Tooling owns this file. Do not edit a
+# synced copy. Edit the canonical copy in FuguBSD/Tooling.
+#
 # The python fragment: the setup target, the lockfile gate, and the
 # Ruff lint and format pair. The fragment uses the portable make
 # subset, so every dispatcher includes it without change.

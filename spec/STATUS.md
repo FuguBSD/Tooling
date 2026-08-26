@@ -24,6 +24,7 @@ phase applies.
 | ---------------------------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | [SYNC-PACKS](sync.md#sync-packs)         | done    | —       | [sync](../scripts/sync), [sync.t](../perl/t/sync.t)                                                                                       |
 | [SYNC-IDENTITY](sync.md#sync-identity)   | done    | —       | [org/sync](../org/sync), [sync.t](../perl/t/sync.t)                                                                                       |
+| [SYNC-MARKER](sync.md#sync-marker)       | done    | —       | [org/sync](../org/sync), [marker.t](../perl/t/marker.t)                                                                                   |
 | [SYNC-CHECK](sync.md#sync-check)         | done    | —       | [org.t](../perl/t/org.t), [sync.t](../perl/t/sync.t)                                                                                      |
 | [SYNC-BOOTSTRAP](sync.md#sync-bootstrap) | done    | —       | [deps](../org/sync/scripts/deps), [deps.t](../perl/t/deps.t)                                                                              |
 | [MK-VERBS](make.md#mk-verbs)             | done    | —       | [org.mk](../org/sync/mk/org.mk), [perl.mk](../perl/sync/mk/perl.mk), [python.mk](../python/sync/mk/python.mk), [make.t](../perl/t/make.t) |
