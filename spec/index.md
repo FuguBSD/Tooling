@@ -63,6 +63,7 @@ IDs of its units.
 | SYNC | [sync.md](sync.md)           | The sync mechanism and the packs   |
 | MK   | [make.md](make.md)           | The make interface and dispatchers |
 | WFL  | [workflows.md](workflows.md) | Actions and reusable workflows     |
+| STE  | [ste-lint.md](ste-lint.md)   | The prose lint                     |
 
 ## Governance documents
 

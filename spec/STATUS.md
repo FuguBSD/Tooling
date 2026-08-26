@@ -37,6 +37,8 @@ phase applies.
 | [WFL-WEB](workflows.md#wfl-web)          | done    | —       | [web-publish.yml](../.github/workflows/web-publish.yml)                                                                                   |
 | [WFL-CACHE](workflows.md#wfl-cache)      | done    | —       | [setup-perl](../perl/actions/setup-perl/action.yml), [setup-perl.t](../perl/t/setup-perl.t)                                               |
 | [WFL-UV](workflows.md#wfl-uv)            | done    | —       | [setup-uv](../python/actions/setup-uv/action.yml), [setup-uv.t](../perl/t/setup-uv.t)                                                     |
+| [STE-SCOPE](ste-lint.md#ste-scope)       | done    | —       | [ste-lint](../org/sync/scripts/ste-lint), [ste-lint.t](../perl/t/ste-lint.t)                                                              |
+| [STE-RULES](ste-lint.md#ste-rules)       | done    | —       | [ste-lint](../org/sync/scripts/ste-lint), [ste-lint.t](../perl/t/ste-lint.t)                                                              |
 
 ## Update protocol
 
@@ -54,6 +56,7 @@ The drift gate maps each document to the code that implements it.
 | sync.md      | `scripts/sync`, `org/sync`, `perl/sync`, `infra/sync`, `web/sync`, `python/sync`, `perl/t`, `GNUmakefile`, `mk/org.mk`, `mk/perl.mk`, `mk/python.mk`, `ruff.toml` |
 | make.md      | `org/sync`, `perl/sync`, `python/sync`, `perl/t`, `GNUmakefile`, `mk/org.mk`, `mk/perl.mk`, `mk/python.mk`                                                        |
 | workflows.md | `.github/workflows`, `actions`, `perl/actions`, `python/actions`, `org/sync/t`, `perl/t`                                                                          |
+| ste-lint.md  | `org/sync/scripts/ste-lint`, `perl/t/ste-lint.t`                                                                                                                  |
 
 ## Retired IDs
 
