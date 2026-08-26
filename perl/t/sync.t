@@ -168,6 +168,30 @@ my $dir = consumer();
 	is( $exit, 0, 'a fresh web sync passes --check' ) or diag($output);
 }
 
+# A consumer that adds the python pack gets the uv toolchain files on
+# top of the org pack.
+{
+	my $python = consumer( 'org', 'python' );
+	my ( $exit, $output ) = run_in($python);
+	is( $exit, 0, 'sync into a python consumer works' ) or diag($output);
+
+	ok( -f "$python/ruff.toml",          'the Ruff configuration arrives' );
+	ok( -f "$python/mk/python.mk",       'the python fragment arrives' );
+	ok( -f "$python/packages/CLAUDE.md", 'the style rules arrive' );
+	ok( -f "$python/t/ci/python.t", 'the consumer python test arrives' );
+	ok( -f "$python/scripts/deps",  'the org pack arrives too' );
+	ok( !-f "$python/scripts/dist", 'and no Perl files arrive' );
+
+	# MK-PYTHON-2: the consumer owns the project files, and the pack
+	# must not ship them.
+	ok( !-f "$python/pyproject.toml",  'no project manifest arrives' );
+	ok( !-f "$python/.python-version", 'no interpreter pin arrives' );
+	ok( !-f "$python/uv.lock",         'no lockfile arrives' );
+
+	( $exit, $output ) = run_in( $python, '--check' );
+	is( $exit, 0, 'a fresh python sync passes --check' ) or diag($output);
+}
+
 # A consumer with no sync.pack line gets the org pack.
 {
 	my $bare = tempdir( CLEANUP => 1 );

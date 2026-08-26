@@ -2,19 +2,22 @@
 
 Every repository serves one standard make interface: the generic verbs, the
 composition contract, and the dispatchers. The org pack distributes the GNU
-dispatcher and the org fragment. The perl pack distributes the Perl fragment.
-This document specifies the vocabulary, the composition, the dispatchers, the
-portable subset, and the consumer hook.
+dispatcher and the org fragment. The perl pack distributes the Perl fragment,
+and the python pack distributes the python fragment. This document specifies the
+vocabulary, the composition, the dispatchers, the portable subset, the python
+fragment, and the consumer hook.
 
 <a id="mk-verbs"></a>
 
 ## The target vocabulary
 
 - **MK-VERBS-1** — Every target of the interface must read and must not write.
-  The exceptions are the `-fix` targets, `dist`, and the `deps` targets. A
-  `-fix` target writes the change that its paired target reports. Every `-fix`
-  target must pair with the read-only target of the same base name. The rule
-  covers the targets that the dispatcher and the fragments define.
+  The exceptions are the `-fix` targets, `dist`, `setup`, and the `deps`
+  targets. A `-fix` target writes the change that its paired target reports.
+  Every `-fix` target must pair with the read-only target of the same base name.
+  The rule covers the targets that the dispatcher and the fragments define. The
+  rule covers the tracked files: a target can write a gitignored cache or
+  environment, for example `.ruff_cache/` or `.venv/`.
 - **MK-VERBS-2** — Every consumer must serve the generic verbs `check`, `lint`,
   `format`, `format-fix`, and `test`.
 - **MK-VERBS-3** — `check` must run every read-only gate of the repository,
@@ -25,8 +28,8 @@ portable subset, and the consumer hook.
   prettier runs through bunx, and no deps manifest provides bun. CI runs
   `format-md` in its own job, after the setup-bun action.
 
-`all`, `spec-check`, `ste-lint`, `dist`, and the `deps` targets are plain
-targets, not verbs.
+`all`, `setup`, `spec-check`, `ste-lint`, `dist`, and the `deps` targets are
+plain targets, not verbs.
 
 <a id="mk-compose"></a>
 
@@ -49,7 +52,8 @@ dispatcher aggregates them into the verbs.
   variable with `+=`.
 - **MK-COMPOSE-5** — `CHECK_TARGETS` is the gate list of `check`. `mk/org.mk`
   must append `lint`, `format`, `test`, `spec-check`, and `ste-lint` to it, per
-  MK-VERBS-3. `mk/local.mk` can append a repo-only gate.
+  MK-VERBS-3. `mk/local.mk` can append a repo-only gate, and a language fragment
+  can append a language gate, for example `lock-py`.
 - **MK-COMPOSE-6** — A fragment must declare each of its targets in `.PHONY`. A
   target name can equal a directory name, for example `deps`, and a phony target
   runs anyway.
@@ -59,7 +63,7 @@ dispatcher aggregates them into the verbs.
 `mk/org.mk` defines `SPEC_CHECK`, `STE_LINT`, `PRETTIER`, `PROVE`, and
 `TEST_GLOBS`. `mk/perl.mk` defines `PERL_SRC_DIRS`, `PERLTIDY`, `DEPS`, `DIST`,
 and `VERSION`. The `VERSION` default is empty, and `scripts/dist` treats an
-empty value as absent.
+empty value as absent. `mk/python.mk` defines `UV`.
 
 <a id="mk-dispatch"></a>
 
@@ -75,6 +79,7 @@ all: check
 -include mk/local.mk
 include mk/org.mk
 -include mk/perl.mk
+-include mk/python.mk
 
 check: $(CHECK_TARGETS)
 lint: $(LINT_TARGETS)
@@ -86,7 +91,8 @@ test: $(TEST_TARGETS)
 
 - **MK-DISPATCH-1** — The org pack must own the GNU dispatcher `GNUmakefile`.
 - **MK-DISPATCH-2** — The include list must be fixed, in this order:
-  `mk/local.mk`, `mk/org.mk`, `mk/perl.mk`. A dispatcher must not use a glob.
+  `mk/local.mk`, `mk/org.mk`, `mk/perl.mk`, `mk/python.mk`. A dispatcher must
+  not use a glob.
 - **MK-DISPATCH-3** — Only a dispatcher can use dialect-specific syntax.
 - **MK-DISPATCH-4** — The BSD dispatcher `Makefile` must mirror the GNU
   dispatcher for OpenBSD base make. It must use `.include` for a required file
@@ -112,6 +118,22 @@ GNU make prefers a `GNUmakefile` when both files exist, and BSD make reads
 
 The subset is the part that the GNU and BSD make dialects share. A fragment that
 satisfies it serves every dispatcher without change.
+
+<a id="mk-python"></a>
+
+## The python fragment
+
+- **MK-PYTHON-1** — `mk/python.mk` must define `setup`, `lock-py`, `lint-py`,
+  `format-py`, and `format-py-fix` over uv and Ruff, per MK-COMPOSE.
+- **MK-PYTHON-2** — The consumer must hold `pyproject.toml`, `.python-version`,
+  and `uv.lock`. The pack must not ship them, per SYNC-IDENTITY. A dependency
+  group of the consumer must hold Ruff, so `uv run` finds the locked release,
+  never a `PATH` fallback.
+- **MK-PYTHON-3** — A consumer `pyproject.toml` must not hold a `[tool.ruff]`
+  section. Ruff prefers the synced `ruff.toml`, and a second configuration
+  drifts in silence.
+- **MK-PYTHON-4** — The synced test `t/ci/python.t` must enforce MK-PYTHON-2 and
+  MK-PYTHON-3 in every consumer.
 
 <a id="mk-local"></a>
 

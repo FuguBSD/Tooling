@@ -35,7 +35,10 @@ jobs:
         with:
           dependencies: test
 
-      - name: Check Perl formatting
+      - name: Setup uv
+        uses: ./python/actions/setup-uv
+
+      - name: Check the formatting
         run: make format
 
   lint:
@@ -50,8 +53,24 @@ jobs:
         with:
           dependencies: test
 
-      - name: Lint Perl sources
+      - name: Setup uv
+        uses: ./python/actions/setup-uv
+
+      - name: Lint the sources
         run: make lint
+
+  lock:
+    name: Lock
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: ./python/actions/setup-uv
+
+      - name: Check the lockfile
+        run: make lock-py
 
   test:
     name: Test
