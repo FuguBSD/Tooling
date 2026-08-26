@@ -20,15 +20,16 @@ fragment, and the consumer hook.
   environment, for example `.ruff_cache/` or `.venv/`.
 - **MK-VERBS-2** — Every consumer must serve the generic verbs `check`, `lint`,
   `format`, `format-fix`, and `test`.
-- **MK-VERBS-3** — `check` must run every read-only gate of the repository,
-  except `format-md` (MK-VERBS-5). It is the commit gate.
+- **MK-VERBS-3** — `check` must run every read-only gate of the repository. It
+  is the commit gate.
 - **MK-VERBS-4** — The target names `deps`, `deps-test`, and `deps-develop` must
   not change. `mk/org.mk` must define the three targets over `$(DEPS)`, because
   the org pack ships `scripts/deps`. The setup-perl action computes the names
   from its `dependencies` input.
-- **MK-VERBS-5** — `format-md` and `format-md-fix` must not join an aggregate.
-  prettier runs through bunx, and no deps manifest provides bun. CI runs
-  `format-md` in its own job, after the setup-bun action.
+- **MK-VERBS-5** — `format-md` must join `FORMAT_TARGETS`, and `format-md-fix`
+  must join `FORMAT_FIX_TARGETS`. Only `mk/org.mk` defines the pair. prettier
+  runs through bunx: the operator installs bun, and a CI job runs the setup-bun
+  action before a format gate. No deps manifest provides bun.
 
 `all`, `setup`, `spec-check`, `ste-lint`, `dist`, and the `deps` targets are
 plain targets, not verbs.
@@ -42,8 +43,7 @@ dispatcher aggregates them into the verbs.
 
 - **MK-COMPOSE-1** — The language aggregation variables are `LINT_TARGETS`,
   `FORMAT_TARGETS`, `FORMAT_FIX_TARGETS`, and `TEST_TARGETS`. A fragment must
-  append each of its namespaced targets to the variable of its verb, except the
-  targets of MK-VERBS-5.
+  append each of its namespaced targets to the variable of its verb.
 - **MK-COMPOSE-2** — A namespaced target must join its verb and the language or
   the tool, with `-fix` last. Examples: `lint-perl` serves `lint`, and
   `format-perl-fix` serves `format-fix`.

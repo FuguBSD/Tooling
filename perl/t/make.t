@@ -154,8 +154,8 @@ sub _subset_violations ($path)
 	return @bad;
 }
 
-# The fragments: the portable subset, the .PHONY register of
-# MK-COMPOSE-6, and no aggregate membership for the formatting pair.
+# The fragments: the portable subset and the .PHONY register of
+# MK-COMPOSE-6.
 for my $fragment (@FRAGMENTS) {
 	my $name = File::Spec->abs2rel( $fragment, $root );
 	is( join( "\n", _subset_violations($fragment) ),
@@ -172,12 +172,27 @@ for my $fragment (@FRAGMENTS) {
 	    grep { /^[A-Za-z0-9._\/-]+[ \t]*:/ && !/^\.PHONY/ }
 	    split /\n/, $text;
 	is( "@unregistered", q{}, "$name declares each target in .PHONY" );
+}
 
-	unlike(
-		$text,
-		qr/_TARGETS[ \t]*\+=[^\n]*format-md/,
-		"$name appends format-md to no aggregate"
+# MK-VERBS-5: only the org fragment defines the formatting pair, and
+# it appends each target to the aggregate of its verb.
+{
+	my $org = _slurp( $FRAGMENTS[0] );
+	like(
+		$org,
+		qr/^FORMAT_TARGETS[ \t]*\+=[ \t]*format-md[ \t]*$/m,
+		'org.mk appends format-md to FORMAT_TARGETS'
 	);
+	like(
+		$org,
+		qr/^FORMAT_FIX_TARGETS[ \t]*\+=[ \t]*format-md-fix[ \t]*$/m,
+		'org.mk appends format-md-fix to FORMAT_FIX_TARGETS'
+	);
+	for my $fragment ( @FRAGMENTS[ 1 .. $#FRAGMENTS ] ) {
+		my $name = File::Spec->abs2rel( $fragment, $root );
+		unlike( _slurp($fragment), qr/format-md/,
+			"$name leaves the formatting pair to org.mk" );
+	}
 }
 
 # The consumer hook of this repository satisfies the portable subset
@@ -302,24 +317,28 @@ ok( !-e "$dir/Makefile",   'the path Makefile stays free' );
 # The composition, through the dry run: every verb runs the
 # namespaced targets of its fragments, and check runs every gate.
 my %MARKER = (
-	'lint-perl'   => qr/Perl::Critic::Command/,
-	'format-perl' => qr/Perl::Tidy/,
-	'test-prove'  => qr/prove/,
-	'spec-check'  => qr{scripts/spec-check},
-	'ste-lint'    => qr{scripts/ste-lint},
-	'local-gate'  => qr/local gate ran/,
+	'lint-perl'       => qr/Perl::Critic::Command/,
+	'format-perl'     => qr/Perl::Tidy/,
+	'format-perl-fix' => qr/Perl::Tidy/,
+	'test-prove'      => qr/prove/,
+	'spec-check'      => qr{scripts/spec-check},
+	'ste-lint'        => qr{scripts/ste-lint},
+	'format-md'       => qr/--check.*no-error-on-unmatched-pattern/,
+	'format-md-fix'   => qr/--write.*no-error-on-unmatched-pattern/,
+	'local-gate'      => qr/local gate ran/,
 );
 my %DRY = (
-	'lint'   => ['lint-perl'],
-	'format' => ['format-perl'],
-	'test'   => ['test-prove'],
-	'check'  => [
-		'lint-perl', 'format-perl', 'test-prove', 'spec-check',
-		'ste-lint',  'local-gate'
+	'lint'       => ['lint-perl'],
+	'format'     => [ 'format-md',     'format-perl' ],
+	'format-fix' => [ 'format-md-fix', 'format-perl-fix' ],
+	'test'       => ['test-prove'],
+	'check'      => [
+		'lint-perl',  'format-md', 'format-perl', 'test-prove',
+		'spec-check', 'ste-lint',  'local-gate'
 	],
 	q{} => [
-		'lint-perl', 'format-perl', 'test-prove', 'spec-check',
-		'ste-lint',  'local-gate'
+		'lint-perl',  'format-md', 'format-perl', 'test-prove',
+		'spec-check', 'ste-lint',  'local-gate'
 	],
 );
 for my $verb ( sort keys %DRY ) {
@@ -332,12 +351,20 @@ for my $verb ( sort keys %DRY ) {
 	unlike(
 		$output,
 		qr/no-error-on-unmatched-pattern/,
-		"$label leaves format-md out"
-	);
+		"$label leaves the formatting pair out"
+	) unless grep { /^format-md/ } @{ $DRY{$verb} };
+
+	# A read verb must not write (MK-VERBS-1): only format-fix may
+	# run the prettier write.
+	unlike(
+		$output,
+		qr/--write.*no-error-on-unmatched-pattern/,
+		"$label runs no Markdown write"
+	) if $verb ne 'format-fix';
 }
 
-# The plain targets resolve: the formatting pair and the frozen deps
-# names of MK-VERBS-4.
+# The formatting pair and the frozen deps names of MK-VERBS-4 also
+# resolve as direct targets.
 for my $target (qw(format-md format-md-fix deps deps-test deps-develop)) {
 	my ( $exit, $output ) = run_in( $dir, "make -n $target" );
 	is( $exit, 0, "make $target resolves" ) or diag($output);
@@ -368,9 +395,8 @@ for my $target (qw(format-md format-md-fix deps deps-test deps-develop)) {
 	like( $output, qr/--version ''/, 'and passes the empty default' );
 }
 
-# An org-only consumer serves every verb (MK-VERBS-2): the absent
-# perl fragment leaves the aggregates empty, and every verb still
-# resolves.
+# An org-only consumer serves every verb (MK-VERBS-2): the org
+# fragment alone fills the aggregates, and every verb resolves.
 {
 	my $org = tempdir( CLEANUP => 1 );
 	write_file( "$org/.toolingrc", "sync.pack org\n" );
