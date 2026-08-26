@@ -13,41 +13,44 @@ or the infra pack.
 Three consumers do model-side work in Python. FuguTTX D7 fixes the language:
 "Python for all model-side work." FuguTTX REP-TOOLS fixes the tools: Python
 3.12, a uv workspace, one lockfile, and Ruff. FuguSTX and FuguCTX rehearse the
-FuguTTX pipeline, and each one builds a data pipeline and a tier T0 score
-script as its next work. FuguSTX T7 and FuguCTX C8 fix Perl for the engine
-harness only. The training-side code of all three repositories is Python.
+FuguTTX pipeline, and each one builds a data pipeline and a tier T0 score script
+as its next work. FuguSTX T7 and FuguCTX C8 fix Perl for the engine harness
+only. The training-side code of all three repositories is Python.
 
-FuguTTX holds the Python toolchain in its `mk/local.mk` today, with this
-header: "The Python targets live here until a second Python repository exists
-and a python pack forms." The second and the third repository now exist. This
-plan forms the pack, so the three consumers share one toolchain, one Ruff
+FuguTTX holds the Python toolchain in its `mk/local.mk` today, with this header:
+"The Python targets live here until a second Python repository exists and a
+python pack forms." The second and the third repository now exist. This plan
+forms the pack, so the three consumers share one toolchain, one Ruff
 configuration, and one CI setup action.
 
 ## Constraints that shape the pack
 
-- **No identity in a synced file** ([SYNC-IDENTITY](../../spec/sync.md#sync-identity),
-  D-02). `pyproject.toml` names the consumer, so the pack must not ship it. The
-  pack ships `ruff.toml`, and the consumer keeps `pyproject.toml`,
-  `.python-version`, and `uv.lock`. Ruff reads `ruff.toml` before the
-  `[tool.ruff]` section, so the adoption deletes that section.
+- **No identity in a synced file**
+  ([SYNC-IDENTITY](../../spec/sync.md#sync-identity), D-02). `pyproject.toml`
+  names the consumer, so the pack must not ship it. The pack ships `ruff.toml`,
+  and the consumer keeps `pyproject.toml`, `.python-version`, and `uv.lock`.
+  Ruff reads `ruff.toml` before the `[tool.ruff]` section, so the adoption
+  deletes that section.
 - **One path, one pack** ([SYNC-PACKS](../../spec/sync.md#sync-packs)-5). The
   org pack owns `.gitignore`, and it already holds the Python patterns. The
   python pack must not hold the path.
 - **The consumer owns `mk/local.mk`** ([MK-LOCAL](../../spec/make.md#mk-local)).
   The FuguTTX adoption deletes its Python targets there, or `make` defines each
   target twice.
-- **The include list is fixed** ([MK-DISPATCH](../../spec/make.md#mk-dispatch)-2).
-  The list gains `mk/python.mk`, after `mk/perl.mk`. The dispatcher is an org
-  file, so the line reaches every consumer. `-include` keeps a consumer without
-  the pack green, and [make.t](../../perl/t/make.t) proves it.
+- **The include list is fixed**
+  ([MK-DISPATCH](../../spec/make.md#mk-dispatch)-2). The list gains
+  `mk/python.mk`, after `mk/perl.mk`. The dispatcher is an org file, so the line
+  reaches every consumer. `-include` keeps a consumer without the pack green,
+  and [make.t](../../perl/t/make.t) proves it.
 - **Verb plus language** ([MK-COMPOSE](../../spec/make.md#mk-compose)-2). The
   targets are `lock-py`, `lint-py`, `format-py`, and `format-py-fix`, as the
   FuguTTX hook names them today.
 - **No third-party action** ([WFL-ACTIONS](../../spec/workflows.md#wfl-actions),
   D-04). `astral-sh/setup-uv` stays out. A FuguBSD composite action installs a
   pinned uv release tarball, as the FuguTTX workflow does inline today.
-- **A root copy of each fragment** ([SYNC-CHECK](../../spec/sync.md#sync-check)-4).
-  The root of this repository gains `mk/python.mk`.
+- **A root copy of each fragment**
+  ([SYNC-CHECK](../../spec/sync.md#sync-check)-4). The root of this repository
+  gains `mk/python.mk`.
 
 ## The pack contents
 
@@ -125,9 +128,9 @@ sync run, and the consumer-side deletions that the constraints above name.
 2. **The `packages/` path.** The `CLAUDE.md` path fixes the uv-workspace layout
    of FuguTTX REP-LAYOUT for every consumer. FuguSTX and FuguCTX have no layout
    unit yet. Is that the intent?
-3. **The uv pin.** The action defaults to one uv version (0.8.17 today, from
-   the FuguTTX workflow). Who bumps the default, and does a consumer override
-   it with an input?
+3. **The uv pin.** The action defaults to one uv version (0.8.17 today, from the
+   FuguTTX workflow). Who bumps the default, and does a consumer override it
+   with an input?
 4. **uv on a dev machine.** The deps manifest `bin` type can install uv with a
    literal URL per platform file, as `scw` installs today. Does each consumer
    add that line, or does the operator install uv by hand?
