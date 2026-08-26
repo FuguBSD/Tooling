@@ -23,7 +23,9 @@ fragment, and the consumer hook.
 - **MK-VERBS-3** — `check` must run every read-only gate of the repository,
   except `format-md` (MK-VERBS-5). It is the commit gate.
 - **MK-VERBS-4** — The target names `deps`, `deps-test`, and `deps-develop` must
-  not change. The setup-perl action computes them from its `dependencies` input.
+  not change. `mk/org.mk` must define the three targets over `$(DEPS)`, because
+  the org pack ships `scripts/deps`. The setup-perl action computes the names
+  from its `dependencies` input.
 - **MK-VERBS-5** — `format-md` and `format-md-fix` must not join an aggregate.
   prettier runs through bunx, and no deps manifest provides bun. CI runs
   `format-md` in its own job, after the setup-bun action.
@@ -60,10 +62,10 @@ dispatcher aggregates them into the verbs.
 
 ### Variables
 
-`mk/org.mk` defines `SPEC_CHECK`, `STE_LINT`, `PRETTIER`, `PROVE`, and
-`TEST_GLOBS`. `mk/perl.mk` defines `PERL_SRC_DIRS`, `PERLTIDY`, `DEPS`, `DIST`,
-and `VERSION`. The `VERSION` default is empty, and `scripts/dist` treats an
-empty value as absent. `mk/python.mk` defines `UV`.
+`mk/org.mk` defines `SPEC_CHECK`, `STE_LINT`, `DEPS`, `PRETTIER`, `PROVE`, and
+`TEST_GLOBS`. `mk/perl.mk` defines `PERL_SRC_DIRS`, `PERLTIDY`, `DIST`, and
+`VERSION`. The `VERSION` default is empty, and `scripts/dist` treats an empty
+value as absent. `mk/python.mk` defines `UV`.
 
 <a id="mk-dispatch"></a>
 
@@ -145,6 +147,9 @@ satisfies it serves every dispatcher without change.
   targets of the consumer, and nothing else.
 - **MK-LOCAL-3** — `mk/local.mk` must satisfy the portable subset of MK-SUBSET.
   Every dispatcher includes the file.
+- **MK-LOCAL-4** — `mk/local.mk` must not define a target that a synced fragment
+  defines. A second recipe for one target makes make print an override warning.
+  The synced test `t/ci/local.t` must enforce the rule in every consumer.
 
 `.toolingrc` stays the identity home of the synced scripts. The two homes hold
 different facts: `dist.testdir` names the dist test set, and `TEST_GLOBS` names

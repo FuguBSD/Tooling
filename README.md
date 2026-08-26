@@ -16,9 +16,9 @@ contracts.
 
 - `org/sync/` — files synced verbatim into every consumer: the `GNUmakefile`
   dispatcher, `mk/org.mk`, the instruction files,
-  `scripts/{deps,ftp,spec-check,ste-lint}`, `t/ci/workflows.t`, the merge-it,
-  pull-it, and review-panel skills, the pull-request template, `.prettierrc`,
-  and `.gitignore`
+  `scripts/{deps,ftp,spec-check,ste-lint}`, the consumer tests
+  `t/ci/workflows.t` and `t/ci/local.t`, the merge-it, pull-it, and review-panel
+  skills, the pull-request template, `.prettierrc`, and `.gitignore`
 - `perl/sync/` — files synced into the Perl consumers: `mk/perl.mk`,
   `scripts/dist`, `lib/CLAUDE.md`, `.perlcriticrc`, and `.perltidyrc`
 - `infra/sync/` — files synced into the consumers with OpenTofu code: the shared

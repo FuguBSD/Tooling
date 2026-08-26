@@ -1,10 +1,12 @@
 # mk/org.mk: canonical copy, owned by FuguBSD/Tooling.
 # The org fragment: the specification gates, the prose gate, the test
-# runner, and the Markdown formatting pair. The fragment uses the
-# portable make subset, so every dispatcher includes it without change.
+# runner, the deps targets, and the Markdown formatting pair. The
+# fragment uses the portable make subset, so every dispatcher
+# includes it without change.
 
 SPEC_CHECK	?= scripts/spec-check
 STE_LINT	?= scripts/ste-lint
+DEPS		?= scripts/deps
 PRETTIER	?= bunx prettier@3.9.6
 PROVE		?= prove -l
 TEST_GLOBS	?= t/ci/*.t
@@ -21,6 +23,17 @@ ste-lint:
 test-prove:
 	$(PROVE) $(TEST_GLOBS)
 
+# The deps targets install the dependencies that deps/<OS>.txt names.
+# Without a manifest, scripts/deps reports and exits zero.
+deps:
+	$(DEPS) runtime
+
+deps-test: deps
+	$(DEPS) test
+
+deps-develop: deps deps-test
+	$(DEPS) develop
+
 # format-md and format-md-fix stay out of every aggregate: prettier
 # runs through bunx, and no deps manifest provides bun. CI runs
 # format-md in its own job, after the setup-bun action.
@@ -30,4 +43,5 @@ format-md:
 format-md-fix:
 	$(PRETTIER) --write --no-error-on-unmatched-pattern '**/*.md' '**/*.json' '**/*.yml'
 
-.PHONY: spec-check ste-lint test-prove format-md format-md-fix
+.PHONY: spec-check ste-lint test-prove deps deps-test deps-develop
+.PHONY: format-md format-md-fix
