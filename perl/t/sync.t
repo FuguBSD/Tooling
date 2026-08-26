@@ -2,7 +2,7 @@
 # ex:ts=8 sw=4:
 # Unit tests for scripts/sync against a fixture consumer
 #
-# sync copies perl/sync/** of this repository into a consumer. The
+# sync copies the selected packs of this repository into a consumer. The
 # fixture consumer is a temporary directory with a .toolingrc. The
 # tests drive the real script as a subprocess, exactly as a consumer
 # and the CI drift gate run it.
@@ -150,6 +150,22 @@ my $dir = consumer();
 
 	( $exit, $output ) = run_in( $infra, '--check' );
 	is( $exit, 0, 'a fresh infra sync passes --check' ) or diag($output);
+}
+
+# A consumer that adds the web pack gets the website instructions and
+# the shared footer on top of the org pack.
+{
+	my $web = consumer( 'org', 'web' );
+	my ( $exit, $output ) = run_in($web);
+	is( $exit, 0, 'sync into a web consumer works' ) or diag($output);
+
+	ok( -f "$web/web/CLAUDE.md",        'the web instructions arrive' );
+	ok( -f "$web/web/footer.body.html", 'the shared footer arrives' );
+	ok( -f "$web/scripts/deps",         'the org pack arrives too' );
+	ok( !-f "$web/scripts/dist",        'and no Perl files arrive' );
+
+	( $exit, $output ) = run_in( $web, '--check' );
+	is( $exit, 0, 'a fresh web sync passes --check' ) or diag($output);
 }
 
 # A consumer with no sync.pack line gets the org pack.

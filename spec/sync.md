@@ -23,6 +23,10 @@ packs, each file at the same relative path.
 - **SYNC-PACKS-6** — The `infra` pack must live at `infra/sync/` and must serve
   the consumers with OpenTofu code. It holds the shared infrastructure
   instructions, at `infra/CLAUDE.md` of the consumer.
+- **SYNC-PACKS-7** — The `web` pack must live at `web/sync/` and must serve the
+  consumers with a fuguweb site. It holds the shared website instructions, at
+  `web/CLAUDE.md` of the consumer. It also holds the shared footer, at
+  `web/footer.body.html` of the consumer.
 
 <a id="sync-identity"></a>
 
