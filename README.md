@@ -23,6 +23,9 @@ contracts.
   `scripts/dist`, `lib/CLAUDE.md`, `.perlcriticrc`, and `.perltidyrc`
 - `infra/sync/` — files synced into the consumers with OpenTofu code: the shared
   infrastructure instructions, `infra/CLAUDE.md`
+- `web/sync/` — files synced into the consumers with a fuguweb site: the shared
+  website instructions, `web/CLAUDE.md`, and the shared footer,
+  `web/footer.body.html`
 - `GNUmakefile`, `mk/` — the root copies of the dispatcher and the fragments,
   and `mk/local.mk`, the consumer hook of this repository
 - `actions/` — language-neutral composite actions (`gh-release`)
@@ -43,10 +46,10 @@ From a consumer repository root, with this repository as a sibling checkout:
     ../Tooling/scripts/sync --check   # report drift, change nothing
 
 A consumer selects its packs with `sync.pack` lines in `.toolingrc`: every
-consumer takes `org`, a Perl repository adds `perl`, and a repository with
-OpenTofu code adds `infra`. A consumer's `check.yml` runs the same `--check` as
-a drift gate. A consumer's `release.yml`, `build.yml`, and `publish.yml` are
-thin callers of the reusable workflows.
+consumer takes `org`, a Perl repository adds `perl`, a repository with OpenTofu
+code adds `infra`, and a repository with a fuguweb site adds `web`. A consumer's
+`check.yml` runs the same `--check` as a drift gate. A consumer's `release.yml`,
+`build.yml`, and `publish.yml` are thin callers of the reusable workflows.
 
 ## Commands
 
