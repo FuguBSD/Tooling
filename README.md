@@ -48,8 +48,9 @@ thin callers of the reusable workflows.
     make format-md   # Markdown/JSON/YAML formatting
     prove -l perl/t/sync.t   # one test file
 
-The python gates run uv. The operator installs uv, for example from Homebrew. No
-deps manifest provides it.
+The python gates run uv, and the Markdown gates run prettier through bunx. The
+operator installs uv and bun, for example from Homebrew. No deps manifest
+provides them.
 
 ## Commit scopes
 

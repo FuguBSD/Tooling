@@ -1,6 +1,7 @@
 name: Setup bun
 description:
-  Install a pinned bun release. The format-md job runs prettier through bunx.
+  Install a pinned bun release. A CI job runs this action before a format gate,
+  because the format gates run prettier through bunx (MK-VERBS-5).
 
 inputs:
   version:

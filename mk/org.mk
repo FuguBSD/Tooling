@@ -11,8 +11,10 @@ PRETTIER	?= bunx prettier@3.9.6
 PROVE		?= prove -l
 TEST_GLOBS	?= t/ci/*.t
 
-CHECK_TARGETS	+= lint format test spec-check ste-lint
-TEST_TARGETS	+= test-prove
+CHECK_TARGETS		+= lint format test spec-check ste-lint
+TEST_TARGETS		+= test-prove
+FORMAT_TARGETS		+= format-md
+FORMAT_FIX_TARGETS	+= format-md-fix
 
 spec-check:
 	@$(SPEC_CHECK)
@@ -34,9 +36,8 @@ deps-test: deps
 deps-develop: deps deps-test
 	$(DEPS) develop
 
-# format-md and format-md-fix stay out of every aggregate: prettier
-# runs through bunx, and no deps manifest provides bun. CI runs
-# format-md in its own job, after the setup-bun action.
+# The Markdown formatting pair runs prettier through bunx, per
+# MK-VERBS-5.
 format-md:
 	@$(PRETTIER) --check --no-error-on-unmatched-pattern '**/*.md' '**/*.json' '**/*.yml' || { echo "Run 'make format-md-fix' to fix formatting"; exit 1; }
 
