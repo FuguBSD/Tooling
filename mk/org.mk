@@ -1,4 +1,6 @@
-# mk/org.mk: canonical copy, owned by FuguBSD/Tooling.
+# The org pack of FuguBSD/Tooling owns this file. Do not edit a
+# synced copy. Edit the canonical copy in FuguBSD/Tooling.
+#
 # The org fragment: the specification gates, the prose gate, the test
 # runner, the deps targets, and the Markdown formatting pair. The
 # fragment uses the portable make subset, so every dispatcher

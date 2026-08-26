@@ -1,11 +1,13 @@
 #!/usr/bin/env perl
 # ex:ts=8 sw=4:
+# The python pack of FuguBSD/Tooling owns this file. Do not edit a
+# synced copy. Edit the canonical copy in FuguBSD/Tooling.
+#
 # Guards for the Python project files of a consumer repository
 #
-# This test is a synced copy, owned by FuguBSD/Tooling at
-# python/sync/t/ci/python.t. The consumer owns pyproject.toml,
-# .python-version, and uv.lock (MK-PYTHON-2), and the synced
-# ruff.toml is the one Ruff configuration (MK-PYTHON-3). A
+# The consumer owns pyproject.toml, .python-version, and uv.lock
+# (MK-PYTHON-2), and the synced ruff.toml is the one Ruff
+# configuration (MK-PYTHON-3). A
 # [tool.ruff] section in pyproject.toml loses to ruff.toml in
 # silence, so this test refuses it, and any of its subtables. The
 # default TEST_GLOBS covers t/ci/*.t, so make test runs this in

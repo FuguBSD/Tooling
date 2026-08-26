@@ -1,4 +1,6 @@
-# mk/perl.mk: canonical copy, owned by FuguBSD/Tooling.
+# The perl pack of FuguBSD/Tooling owns this file. Do not edit a
+# synced copy. Edit the canonical copy in FuguBSD/Tooling.
+#
 # The perl fragment: lint, format, and dist. The fragment uses the
 # portable make subset, so every dispatcher includes it without
 # change.
