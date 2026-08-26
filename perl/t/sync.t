@@ -67,6 +67,7 @@ my $dir = consumer();
 	ok( -f "$dir/scripts/deps",     'deps arrives' );
 	ok( -f "$dir/scripts/ftp",      'ftp arrives' );
 	ok( -f "$dir/t/ci/workflows.t", 'the consumer CI test arrives' );
+	ok( -f "$dir/t/ci/local.t",     'the consumer hook test arrives' );
 	ok( -x "$dir/scripts/deps",     'the exec bit survives' );
 
 	( $exit, $output ) = run_in( $dir, '--check' );

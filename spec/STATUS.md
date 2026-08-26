@@ -31,7 +31,7 @@ phase applies.
 | [MK-DISPATCH](make.md#mk-dispatch)       | partial | —       | The BSD dispatcher `Makefile` of MK-DISPATCH-4 is absent. [GNUmakefile](../org/sync/GNUmakefile), [make.t](../perl/t/make.t)              |
 | [MK-SUBSET](make.md#mk-subset)           | done    | —       | [org.mk](../org/sync/mk/org.mk), [perl.mk](../perl/sync/mk/perl.mk), [python.mk](../python/sync/mk/python.mk), [make.t](../perl/t/make.t) |
 | [MK-PYTHON](make.md#mk-python)           | done    | —       | [python.mk](../python/sync/mk/python.mk), [python.t](../python/sync/t/ci/python.t), [make.t](../perl/t/make.t)                            |
-| [MK-LOCAL](make.md#mk-local)             | done    | —       | [GNUmakefile](../org/sync/GNUmakefile), [local.mk](../mk/local.mk), [make.t](../perl/t/make.t)                                            |
+| [MK-LOCAL](make.md#mk-local)             | done    | —       | [GNUmakefile](../org/sync/GNUmakefile), [local.t](../org/sync/t/ci/local.t), [make.t](../perl/t/make.t)                                   |
 | [WFL-ACTIONS](workflows.md#wfl-actions)  | done    | —       | [workflows.t](../org/sync/t/ci/workflows.t)                                                                                               |
 | [WFL-REUSE](workflows.md#wfl-reuse)      | done    | —       | [perl-build.yml](../.github/workflows/perl-build.yml), [perl-release.yml](../.github/workflows/perl-release.yml)                          |
 | [WFL-WEB](workflows.md#wfl-web)          | done    | —       | [web-publish.yml](../.github/workflows/web-publish.yml)                                                                                   |

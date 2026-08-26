@@ -185,6 +185,42 @@ for my $fragment (@FRAGMENTS) {
 is( join( "\n", _subset_violations("$root/mk/local.mk") ),
 	q{}, 'mk/local.mk satisfies the portable subset' );
 
+# _rule_targets($path):
+#	The names of the targets that one make file defines. A rule
+#	line can name several targets before the colon, and an inline
+#	recipe can follow it.
+sub _rule_targets ($path)
+{
+	my $text = _slurp($path);
+	$text =~ s/\\\n[ \t]*/ /g;
+
+	my @names;
+	for my $line ( split /\n/, $text ) {
+		next if $line =~ /^\.PHONY/ || $line =~ /^\t/;
+		next unless $line =~ /^([^:=#\t][^:=]*):(?:[^=]|$)/;
+		push @names, split q{ }, $1;
+	}
+
+	return @names;
+}
+
+# MK-LOCAL-4 on the hook of this repository: sync refuses to run
+# here, so the synced t/ci/local.t never covers it. The same overlap
+# check runs statically, and each fragment pair stays disjoint too.
+{
+	my %local = map { $_ => 1 } _rule_targets("$root/mk/local.mk");
+	my %seen;
+	my @twice;
+	for my $fragment (@FRAGMENTS) {
+		my $name  = File::Spec->abs2rel( $fragment, $root );
+		my @names = _rule_targets($fragment);
+		my @clash = grep { $local{$_} } @names;
+		is( "@clash", q{}, "mk/local.mk redefines no target of $name" );
+		push @twice, grep { $seen{$_}++ } @names;
+	}
+	is( "@twice", q{}, 'no target lives in two fragments' );
+}
+
 # No pack holds the path Makefile or the consumer hook mk/local.mk.
 for my $pack ( "$root/org/sync", "$root/perl/sync", "$root/python/sync" ) {
 	ok( !-e "$pack/Makefile",    "$pack holds no Makefile" );
@@ -349,6 +385,25 @@ for my $target (qw(format-md format-md-fix deps deps-test deps-develop)) {
 		is( $exit, 0, "make $verb resolves without the perl pack" )
 		    or diag($output);
 	}
+
+	# The org fragment owns the deps targets (MK-VERBS-4): the
+	# frozen names resolve without any language pack, and each
+	# recipe runs scripts/deps with its environment name.
+	my %ENV_OF = (
+		'deps'         => 'runtime',
+		'deps-test'    => 'test',
+		'deps-develop' => 'develop',
+	);
+	for my $target ( sort keys %ENV_OF ) {
+		( $exit, $output ) = run_in( $org, "make -n $target" );
+		is( $exit, 0, "make $target resolves without the perl pack" )
+		    or diag($output);
+		like(
+			$output,
+			qr{scripts/deps $ENV_OF{$target}},
+			"and $target runs scripts/deps $ENV_OF{$target}"
+		);
+	}
 }
 
 # A python consumer serves the uv targets: the fragment appends them
@@ -424,6 +479,32 @@ for my $target (qw(format-md format-md-fix deps deps-test deps-develop)) {
 	my ( $exit, $output ) = run_in( $dir, 'make lint' );
 	isnt( $exit, 0, 'make lint fails on a violation' );
 	like( $output, qr/strict/, 'and the output names the finding' );
+}
+
+# The synced local.t enforces MK-LOCAL-4: it accepts the compliant
+# hook, and it rejects a hook that redefines a fragment target.
+{
+	my ( $exit, $output ) = run_in( $dir, 'perl t/ci/local.t' );
+	is( $exit, 0, 'local.t passes on a compliant hook' )
+	    or diag($output);
+
+	write_file( "$dir/mk/local.mk", $local . <<'EOF' );
+
+deps:
+	@echo local deps
+.PHONY: deps
+EOF
+	( $exit, $output ) = run_in( $dir, 'perl t/ci/local.t' );
+	isnt( $exit, 0, 'local.t fails on a redefined fragment target' );
+	like( $output, qr/deps/, 'and the output names the target' );
+
+	# A rule line can hide the clash in a target list or behind an
+	# inline recipe. The parser catches both forms.
+	write_file( "$dir/mk/local.mk",
+		$local . "\ndeps extra: ; \@echo local\n" );
+	( $exit, $output ) = run_in( $dir, 'perl t/ci/local.t' );
+	isnt( $exit, 0, 'local.t catches a multi-target inline rule' );
+	write_file( "$dir/mk/local.mk", $local );
 }
 
 done_testing();
