@@ -44,6 +44,25 @@ packs, each file at the same relative path.
 - **SYNC-IDENTITY-3** — The synced root `CLAUDE.md` must import the consumer
   README with an `@README.md` line.
 
+<a id="sync-marker"></a>
+
+## The marker
+
+- **SYNC-MARKER-1** — Every synced file must start with a marker comment. The
+  marker text is: "The `<pack>` pack of FuguBSD/Tooling owns this file. Do not
+  edit a synced copy. Edit the canonical copy in FuguBSD/Tooling."
+- **SYNC-MARKER-2** — In a file with `#` comment syntax, the marker must use `#`
+  comment lines. In a Markdown or HTML file, the marker must use one HTML
+  comment.
+- **SYNC-MARKER-3** — Only a shebang line, an `ex:` editor hint, YAML front
+  matter, and blank lines can come before the marker.
+- **SYNC-MARKER-4** — A file without comment syntax, an empty placeholder file,
+  and a file that GitHub copies into user content carry no marker. The exempt
+  files are `.prettierrc` (JSON), `plans/.gitkeep` (empty), and
+  `.github/pull_request_template.md` (each pull request body receives a copy).
+- **SYNC-MARKER-5** — The test `perl/t/marker.t` must hold every pack file to
+  this unit.
+
 <a id="sync-check"></a>
 
 ## Verification

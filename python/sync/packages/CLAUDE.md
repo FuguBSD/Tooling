@@ -1,3 +1,8 @@
+<!--
+The python pack of FuguBSD/Tooling owns this file. Do not edit a synced
+copy. Edit the canonical copy in FuguBSD/Tooling.
+-->
+
 # packages/
 
 Applies when working on Python code in this repository.

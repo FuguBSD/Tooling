@@ -1,7 +1,9 @@
-# Shared infrastructure instructions
+<!--
+The infra pack of FuguBSD/Tooling owns this file. Do not edit a synced
+copy. Edit the canonical copy in FuguBSD/Tooling.
+-->
 
-The `infra` pack of FuguBSD/Tooling owns this file. `scripts/sync` overwrites
-it. Edit the canonical copy in FuguBSD/Tooling.
+# Shared infrastructure instructions
 
 These instructions hold the shared rules for the OpenTofu code under `infra/`:
 naming, layout, tags, state, credentials, spend guardrails, and teardown. The
