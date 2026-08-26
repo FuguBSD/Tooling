@@ -2,11 +2,10 @@
 
 The shared build, dist and release tooling of the FuguBSD repositories.
 
-One canonical copy of every shared tool lives here. A consumer repository uses
-the tooling in two ways: it references the composite actions and the reusable
-workflows across repositories at `@main`, and it holds verbatim copies of the
-synced files, verified by a CI drift gate. Each consumer describes its own
-identity in one `.toolingrc` file at its root.
+One canonical copy of every shared tool lives here. A consumer repository
+references the composite actions and the reusable workflows at `@main`, and it
+holds verbatim copies of the synced files. A CI drift gate verifies the copies.
+Each consumer describes its own identity in one `.toolingrc` file at its root.
 
 A bad push here breaks the next CI run of every consumer. Run `make check`
 before every commit. The specification in [spec/](spec/index.md) states the
@@ -14,33 +13,18 @@ contracts.
 
 ## Layout
 
-- `org/sync/` — files synced verbatim into every consumer: the `GNUmakefile`
-  dispatcher, `mk/org.mk`, the instruction files,
-  `scripts/{deps,ftp,spec-check,ste-lint}`, `t/ci/workflows.t`, the merge-it,
-  pull-it, and review-panel skills, the pull-request template, `.prettierrc`,
-  and `.gitignore`
-- `perl/sync/` — files synced into the Perl consumers: `mk/perl.mk`,
-  `scripts/dist`, `lib/CLAUDE.md`, `.perlcriticrc`, and `.perltidyrc`
-- `infra/sync/` — files synced into the consumers with OpenTofu code: the shared
-  infrastructure instructions, `infra/CLAUDE.md`
-- `web/sync/` — files synced into the consumers with a fuguweb site: the shared
-  website instructions, `web/CLAUDE.md`, and the shared footer,
-  `web/footer.body.html`
-- `python/sync/` — files synced into the consumers with Python code:
-  `mk/python.mk`, `ruff.toml`, the Python style rules, `packages/CLAUDE.md`, and
-  the consumer test `t/ci/python.t`
-- `GNUmakefile`, `mk/` — the root copies of the dispatcher and the fragments,
-  and `mk/local.mk`, the consumer hook of this repository
-- `actions/` — language-neutral composite actions (`gh-release`, `setup-bun`)
-- `perl/actions/` — Perl composite actions (`setup-perl`, `pause-upload`)
-- `python/actions/` — Python composite actions (`setup-uv`)
-- `perl/t/` — the tests of the canonical tooling
+- `org/sync/` — files synced verbatim into every consumer: the make interface,
+  the instruction files, the scripts, the skills, and the shared dotfiles
+- `perl/sync/` — files synced into the Perl consumers
+- `infra/sync/`, `web/sync/`, `python/sync/` — files synced into the consumers
+  with OpenTofu code, a fuguweb site, or Python code
+- `GNUmakefile`, `mk/` — the root copies of the dispatcher and the fragments
+- `actions/`, `perl/actions/`, `python/actions/` — the composite actions
+- `.github/workflows/` — the reusable workflows: `perl-build.yml`,
+  `perl-release.yml`, and `web-publish.yml`
 - `scripts/sync` — copies the selected packs into a consumer; `--check` is the
   CI drift gate
-- `.github/workflows/perl-build.yml`, `perl-release.yml` — reusable workflows
-  that the Perl consumers call
-- `.github/workflows/web-publish.yml` — reusable workflow that builds the
-  FuguWeb site of a consumer and deploys it to GitHub Pages
+- `perl/t/` — the tests of the canonical tooling
 
 ## Consumer usage
 
