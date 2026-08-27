@@ -18,9 +18,12 @@ decision.
   requirement, "must not" for a prohibition, "can" for a capability.
 - A rule item can join tightly coupled requirements on one object with "and
   must". Each sentence stays short and active.
-- Each document describes the target design in the current state only. Do not
-  write an amendment, and do not refer to an earlier state.
-- Only [ROADMAP.md](ROADMAP.md) and [STATUS.md](STATUS.md) say when work occurs.
+- Each design document describes the target design in the current state only. Do
+  not write an amendment, and do not refer to an earlier state.
+- [ROADMAP.md](ROADMAP.md), [STATUS.md](STATUS.md), and `LEARNING.md` are
+  records, not design documents. Only a record says when work occurs, and only a
+  record refers to an earlier state. `LEARNING.md` holds the learning of each
+  campaign. A repository adds it only when it runs campaigns.
 
 ## The ID overlay
 

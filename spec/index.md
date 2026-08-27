@@ -47,8 +47,10 @@ unit, and the unit ID is the anchor in upper case:
 - Rule numbers only append: never renumber a rule, and never reuse a number.
 - An ID must not change. To retire a unit: delete its anchor and its register
   row, and add the ID to the "Retired IDs" table of [STATUS.md](STATUS.md).
-- Each document describes the target design in the current state only. Only
-  [ROADMAP.md](ROADMAP.md) and [STATUS.md](STATUS.md) say when work occurs.
+- Each design document describes the target design in the current state only.
+  [ROADMAP.md](ROADMAP.md), [STATUS.md](STATUS.md), and `LEARNING.md` are
+  records: only a record says when work occurs, and only a record refers to an
+  earlier state. A repository adds `LEARNING.md` only when it runs campaigns.
 - A citation of a unit of a sibling repository is a prose token with the
   repository name in front, for example FuguOracle OPS-GET-4. It is never a
   link, and it never names a plan.
