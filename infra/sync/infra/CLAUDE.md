@@ -5,11 +5,10 @@ copy. Edit the canonical copy in FuguBSD/Tooling.
 
 # Shared infrastructure instructions
 
-These instructions hold the shared rules for the OpenTofu code under `infra/`:
-naming, layout, tags, state, credentials, spend guardrails, and teardown. The
-consumer specification states the project resources, the budget, and the
-documented exceptions. `<code>` is the project short code, in lower case, for
-example `ttx`. The consumer specification states its code.
+The shared rules for the OpenTofu code under `infra/`. The consumer
+specification states the project resources, the budget, and the documented
+exceptions. `<code>` is the project short code, in lower case, for example
+`ttx`. The consumer specification states its code.
 
 ## Ground rules
 
@@ -19,8 +18,8 @@ example `ttx`. The consumer specification states its code.
 - The shared platform is Scaleway. A consumer can manage an other platform under
   `infra/`, for example GitHub in the Repositories repository. The Scaleway
   rules of this file apply to each stack that declares a Scaleway resource.
-- Prices change. Each recorded price carries the date it was read. Read the live
-  price before you create a resource.
+- Read the live price before you create a resource. Each recorded price carries
+  the date it was read.
 - Scaleway documents a minimum of 60 minutes for each created resource, so a
   cycle shorter than one hour saves nothing.
 
@@ -43,9 +42,7 @@ SET-NAMING-1).
 | Zone                    | `fr-par-2`                    |
 | Object Storage endpoint | `https://s3.fr-par.scw.cloud` |
 
-One region and one zone hold everything. A quota applies per Organization and
-per Availability Zone, so one zone caps a defective loop. Do not put a bucket in
-a second region.
+One region and one zone hold everything. Do not put a bucket in a second region.
 
 ## Version pins
 
@@ -94,8 +91,8 @@ strings, and a bucket takes a map. Build both shapes from one map in
 | `<code>:expires`   | `<code>:expires=2026-08-02T18:00:00Z` | The hard end of the lease, in UTC   |
 
 An ad-hoc resource — a probe, an experiment — must carry
-`<code>:lifecycle=ephemeral` and a near `<code>:expires`. The watchdog is then
-the backstop. Delete the resource in the same session.
+`<code>:lifecycle=ephemeral` and a near `<code>:expires`. Delete it in the same
+session. The watchdog is the backstop.
 
 ## Buckets
 
@@ -131,10 +128,10 @@ The state holds secrets. Three controls apply together:
 3. OpenTofu must not create the pipeline key, the operator key, or the train
    key.
 
-A bucket policy is an allow list, and a new policy overwrites the old one: a
-principal that the policy does not name loses access. Test each bucket-policy
-change on a scratch bucket first. Recovery from a bad state is a human act. The
-consumer runbook holds the `tofu force-unlock` and `tofu import` procedures.
+A bucket policy is an allow list, and a new policy overwrites the old one. Test
+each bucket-policy change on a scratch bucket first. Recovery from a bad state
+is a human act: the consumer runbook holds the `tofu force-unlock` and
+`tofu import` procedures.
 
 ## Credentials
 
