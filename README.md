@@ -1,6 +1,6 @@
 # Tooling
 
-The shared build, dist and release tooling of the FuguBSD repositories.
+The shared build, dist, release and agent tooling of the FuguBSD repositories.
 
 One canonical copy of every shared tool lives here. A consumer repository
 references the composite actions and the reusable workflows at `@main`, and it
