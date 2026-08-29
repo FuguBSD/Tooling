@@ -73,8 +73,9 @@ action.
   release from its tarball, and must verify the sha256 checksum of the download
   before the install. The test `perl/t/setup-gitleaks.t` must hold the action to
   this rule.
-- **WFL-GITLEAKS-2** — The check workflow of a repository must run
-  `make gitleaks` in a job with a `fetch-depth: 0` checkout. A shallow checkout
-  hides old commits from the scan.
+- **WFL-GITLEAKS-2** — The check workflow of a repository must run the gitleaks
+  gate in a job with a `fetch-depth: 0` checkout. The job runs `make gitleaks`,
+  or `make check` per MK-VERBS-3. A shallow checkout hides old commits from the
+  scan.
 - **WFL-GITLEAKS-3** — The synced test `t/ci/workflows.t` must enforce
   WFL-GITLEAKS-2 in every consumer with a check workflow.

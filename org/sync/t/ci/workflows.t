@@ -115,7 +115,9 @@ note("setup-perl uses found: $users");
 # The gitleaks gate needs the full git history (WFL-GITLEAKS-2): a
 # shallow checkout hides old commits from the scan. The check
 # workflow must run the gate after a full checkout, in the same job.
-# A full checkout in a sibling job feeds a different runner.
+# A full checkout in a sibling job feeds a different runner. The
+# gate runs through make gitleaks, or through make check, which
+# runs every gate per MK-VERBS-3.
 subtest 'the check workflow runs the gitleaks gate' => sub {
 	my $path = "$workflow/check.yml";
 	plan skip_all => 'no check workflow' unless -f $path;
@@ -124,13 +126,14 @@ subtest 'the check workflow runs the gitleaks gate' => sub {
 
 	# A block starts at each two-space key: every job, and also
 	# the triggers under on:. A trigger block never runs make, so
-	# the grep still lands on the one gitleaks job.
+	# the grep lands on the gate jobs only.
 	my @blocks = split /^(?=  [A-Za-z0-9_-]+:[ \t]*$)/m, $text;
-	my ($job)  = grep { /run:\s*make gitleaks\b/ } @blocks;
-	ok( defined $job, 'check.yml runs make gitleaks' );
-	like( $job // q{},
-		qr/fetch-depth:\s*0\b/,
-		'and the gitleaks job holds a full checkout' );
+	my @gate   = grep { /run:\s*make (?:check|gitleaks)\b/ } @blocks;
+	ok( scalar @gate, 'check.yml runs the gitleaks gate' );
+	ok(
+		( grep { /fetch-depth:\s*0\b/ } @gate ),
+		'and a gate job holds a full checkout'
+	);
 };
 
 # The supply-chain rule: no third-party action. A workflow may use
