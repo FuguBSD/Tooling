@@ -5,8 +5,8 @@
 #
 # Guards for the workflows of a consumer repository
 #
-# The canonical setup-perl and setup-uv actions live in
-# FuguBSD/Tooling, and this repository references them across
+# The canonical setup-perl, setup-uv, and setup-gitleaks actions
+# live in FuguBSD/Tooling, and this repository references them across
 # repositories.
 # Nothing under .github/ runs outside a runner, so the test reads the
 # workflows as text and asserts the invariants that only fail in CI:
@@ -20,8 +20,9 @@ use FindBin qw($RealBin);
 
 my $workflow = "$RealBin/../../.github/workflows";
 
-use constant ACTION    => 'FuguBSD/Tooling/perl/actions/setup-perl@main';
-use constant UV_ACTION => 'FuguBSD/Tooling/python/actions/setup-uv@main';
+use constant ACTION          => 'FuguBSD/Tooling/perl/actions/setup-perl@main';
+use constant UV_ACTION       => 'FuguBSD/Tooling/python/actions/setup-uv@main';
+use constant GITLEAKS_ACTION => 'FuguBSD/Tooling/actions/setup-gitleaks@main';
 
 my %ENVIRONMENTS = map { $_ => 1 } qw(runtime test develop);
 
@@ -95,11 +96,42 @@ for my $file (@files) {
 			      "$file line @{[$i + 1]} references"
 			    . ' the shared uv action' );
 	}
+
+	# The same pin for gitleaks: the gate reads every secret
+	# finding, so only the pinned action installs the binary.
+	for my $i ( 0 .. $#lines ) {
+		next
+		    unless $lines[$i] =~ m{uses:\s*(\S*setup-gitleaks\S*)\s*$};
+		is( $1, GITLEAKS_ACTION,
+			      "$file line @{[$i + 1]} references"
+			    . ' the shared gitleaks action' );
+	}
 }
 
 # A repository with no Perl dependencies uses no setup-perl at all.
 # The rules above apply to each use, not to the count.
 note("setup-perl uses found: $users");
+
+# The gitleaks gate needs the full git history (WFL-GITLEAKS-2): a
+# shallow checkout hides old commits from the scan. The check
+# workflow must run the gate after a full checkout, in the same job.
+# A full checkout in a sibling job feeds a different runner.
+subtest 'the check workflow runs the gitleaks gate' => sub {
+	my $path = "$workflow/check.yml";
+	plan skip_all => 'no check workflow' unless -f $path;
+
+	my $text = _slurp($path) // q{};
+
+	# A block starts at each two-space key: every job, and also
+	# the triggers under on:. A trigger block never runs make, so
+	# the grep still lands on the one gitleaks job.
+	my @blocks = split /^(?=  [A-Za-z0-9_-]+:[ \t]*$)/m, $text;
+	my ($job)  = grep { /run:\s*make gitleaks\b/ } @blocks;
+	ok( defined $job, 'check.yml runs make gitleaks' );
+	like( $job // q{},
+		qr/fetch-depth:\s*0\b/,
+		'and the gitleaks job holds a full checkout' );
+};
 
 # The supply-chain rule: no third-party action. A workflow may use
 # GitHub's own actions/, the FuguBSD organization's, or a local path -
