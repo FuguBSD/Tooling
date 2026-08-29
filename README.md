@@ -44,13 +44,13 @@ thin callers of the reusable workflows.
 
     make deps-test   # install Perl::Critic and Perl::Tidy
     make setup       # install the development tools into .venv
-    make check       # lint + format + test + spec-check + ste-lint + lock-py
+    make check       # lint + format + test + spec-check + ste-lint + gitleaks + lock-py
     make format-md   # Markdown/JSON/YAML formatting
     prove -l perl/t/sync.t   # one test file
 
-The python gates run uv, and the Markdown gates run prettier through bunx. The
-operator installs uv and bun, for example from Homebrew. No deps manifest
-provides them.
+The python gates run uv, the Markdown gates run prettier through bunx, and the
+gitleaks gate runs gitleaks. The operator installs uv, bun, and gitleaks, for
+example from Homebrew. No deps manifest provides them.
 
 ## Commit scopes
 

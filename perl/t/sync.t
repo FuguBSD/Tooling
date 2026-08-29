@@ -127,11 +127,30 @@ my $dir = consumer();
 	ok( -f "$org/scripts/deps",       'the installer arrives' );
 	ok( -f "$org/scripts/spec-check", 'the spec check arrives' );
 	ok( -f "$org/scripts/ste-lint",   'the prose lint arrives' );
-	ok( -f "$org/CLAUDE.md",          'the root instructions arrive' );
-	ok( -f "$org/spec/CLAUDE.md",     'the spec instructions arrive' );
-	ok( -f "$org/plans/CLAUDE.md",    'the plan instructions arrive' );
-	ok( !-f "$org/scripts/dist",      'no dist script arrives' );
-	ok( !-f "$org/.perlcriticrc",     'no lint configuration arrives' );
+	ok( -f "$org/.gitleaks.toml", 'the gitleaks configuration arrives' );
+
+	# MK-GITLEAKS-3: the shipped configuration extends the default
+	# rules. A copy without the extend block disables every rule in
+	# every consumer, in silence.
+	if ( open my $toml_fh, '<', "$org/.gitleaks.toml" ) {
+		my $toml = do { local $/; <$toml_fh> };
+		close $toml_fh;
+		like( $toml, qr/^\[extend\]$/m,
+			'the configuration holds the extend block' );
+		like(
+			$toml,
+			qr/^useDefault = true$/m,
+			'and extends the default rules'
+		);
+	}
+	else {
+		fail('the gitleaks configuration is readable');
+	}
+	ok( -f "$org/CLAUDE.md",       'the root instructions arrive' );
+	ok( -f "$org/spec/CLAUDE.md",  'the spec instructions arrive' );
+	ok( -f "$org/plans/CLAUDE.md", 'the plan instructions arrive' );
+	ok( !-f "$org/scripts/dist",   'no dist script arrives' );
+	ok( !-f "$org/.perlcriticrc",  'no lint configuration arrives' );
 
 	( $exit, $output ) = run_in( $org, '--check' );
 	is( $exit, 0, 'a fresh org-only sync passes --check' )

@@ -77,6 +77,23 @@ jobs:
       - name: Run tests
         run: make test
 
+  gitleaks:
+    name: Gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      # The gate scans the git history, so the checkout must be full
+      # (WFL-GITLEAKS-2). A shallow checkout hides old commits.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup gitleaks
+        uses: ./actions/setup-gitleaks
+
+      - name: Scan for secrets
+        run: make gitleaks
+
   spec:
     name: Spec
     runs-on: ubuntu-latest

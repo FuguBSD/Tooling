@@ -259,6 +259,7 @@ my $local = <<'EOF';
 # The consumer hook of the fixture (MK-LOCAL).
 TEST_GLOBS	= t/fix/*.t
 PRETTIER	= echo prettier
+GITLEAKS	= echo gitleaks
 CHECK_TARGETS	+= local-gate
 
 local-gate:
@@ -323,6 +324,7 @@ my %MARKER = (
 	'test-prove'      => qr/prove/,
 	'spec-check'      => qr{scripts/spec-check},
 	'ste-lint'        => qr{scripts/ste-lint},
+	'gitleaks'        => qr/gitleaks git --no-banner --redact/,
 	'format-md'       => qr/--check.*no-error-on-unmatched-pattern/,
 	'format-md-fix'   => qr/--write.*no-error-on-unmatched-pattern/,
 	'local-gate'      => qr/local gate ran/,
@@ -334,11 +336,11 @@ my %DRY = (
 	'test'       => ['test-prove'],
 	'check'      => [
 		'lint-perl',  'format-md', 'format-perl', 'test-prove',
-		'spec-check', 'ste-lint',  'local-gate'
+		'spec-check', 'ste-lint',  'gitleaks',    'local-gate'
 	],
 	q{} => [
 		'lint-perl',  'format-md', 'format-perl', 'test-prove',
-		'spec-check', 'ste-lint',  'local-gate'
+		'spec-check', 'ste-lint',  'gitleaks',    'local-gate'
 	],
 );
 for my $verb ( sort keys %DRY ) {
@@ -361,6 +363,23 @@ for my $verb ( sort keys %DRY ) {
 		qr/--write.*no-error-on-unmatched-pattern/,
 		"$label runs no Markdown write"
 	) if $verb ne 'format-fix';
+}
+
+# The gitleaks gate runs three redacted scans (MK-GITLEAKS-1 and
+# MK-GITLEAKS-2): the history, the unstaged changes to the tracked
+# files, and the staged changes. One scan sees none of the other two
+# surfaces, so a dropped line narrows the gate in silence.
+{
+	my ( $exit, $output ) = run_in( $dir, 'make -n gitleaks' );
+	is( $exit, 0, 'make gitleaks resolves' ) or diag($output);
+
+	my @scans = grep { /gitleaks git / } split /\n/, $output;
+	is( scalar @scans, 3, 'the gate runs three scans' );
+	is( scalar( grep { /--redact/ } @scans ), 3, 'every scan redacts' );
+	is( scalar( grep { /--pre-commit/ } @scans ),
+		2, 'two scans read the uncommitted surfaces' );
+	is( scalar( grep { /--pre-commit --staged/ } @scans ),
+		1, 'and one of the two reads the index' );
 }
 
 # The formatting pair and the frozen deps names of MK-VERBS-4 also

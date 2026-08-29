@@ -5,7 +5,7 @@ composition contract, and the dispatchers. The org pack distributes the GNU
 dispatcher and the org fragment. The perl pack distributes the Perl fragment,
 and the python pack distributes the python fragment. This document specifies the
 vocabulary, the composition, the dispatchers, the portable subset, the python
-fragment, and the consumer hook.
+fragment, the gitleaks gate, and the consumer hook.
 
 <a id="mk-verbs"></a>
 
@@ -31,8 +31,8 @@ fragment, and the consumer hook.
   runs through bunx: the operator installs bun, and a CI job runs the setup-bun
   action before a format gate. No deps manifest provides bun.
 
-`all`, `setup`, `spec-check`, `ste-lint`, `dist`, and the `deps` targets are
-plain targets, not verbs.
+`all`, `setup`, `spec-check`, `ste-lint`, `gitleaks`, `dist`, and the `deps`
+targets are plain targets, not verbs.
 
 <a id="mk-compose"></a>
 
@@ -53,19 +53,19 @@ dispatcher aggregates them into the verbs.
   with `?=`, so the consumer hook wins. A fragment must append to an aggregation
   variable with `+=`.
 - **MK-COMPOSE-5** — `CHECK_TARGETS` is the gate list of `check`. `mk/org.mk`
-  must append `lint`, `format`, `test`, `spec-check`, and `ste-lint` to it, per
-  MK-VERBS-3. `mk/local.mk` can append a repo-only gate, and a language fragment
-  can append a language gate, for example `lock-py`.
+  must append `lint`, `format`, `test`, `spec-check`, `ste-lint`, and `gitleaks`
+  to it, per MK-VERBS-3. `mk/local.mk` can append a repo-only gate, and a
+  language fragment can append a language gate, for example `lock-py`.
 - **MK-COMPOSE-6** — A fragment must declare each of its targets in `.PHONY`. A
   target name can equal a directory name, for example `deps`, and a phony target
   runs anyway.
 
 ### Variables
 
-`mk/org.mk` defines `SPEC_CHECK`, `STE_LINT`, `DEPS`, `PRETTIER`, `PROVE`, and
-`TEST_GLOBS`. `mk/perl.mk` defines `PERL_SRC_DIRS`, `PERLTIDY`, `DIST`, and
-`VERSION`. The `VERSION` default is empty, and `scripts/dist` treats an empty
-value as absent. `mk/python.mk` defines `UV`.
+`mk/org.mk` defines `SPEC_CHECK`, `STE_LINT`, `DEPS`, `GITLEAKS`, `PRETTIER`,
+`PROVE`, and `TEST_GLOBS`. `mk/perl.mk` defines `PERL_SRC_DIRS`, `PERLTIDY`,
+`DIST`, and `VERSION`. The `VERSION` default is empty, and `scripts/dist` treats
+an empty value as absent. `mk/python.mk` defines `UV`.
 
 <a id="mk-dispatch"></a>
 
@@ -138,6 +138,33 @@ satisfies it serves every dispatcher without change.
   drifts in silence.
 - **MK-PYTHON-4** — The synced test `t/ci/python.t` must enforce MK-PYTHON-2 and
   MK-PYTHON-3 in every consumer.
+
+<a id="mk-gitleaks"></a>
+
+## The gitleaks gate
+
+The gitleaks gate scans a repository for leaked secrets. The gate fails on a
+finding, so a credential stops at the commit gate, before a push.
+
+- **MK-GITLEAKS-1** — `mk/org.mk` must define the `gitleaks` target over
+  `$(GITLEAKS)` and must append it to `CHECK_TARGETS`. The target must run three
+  scans. The scans read the full git history, the unstaged changes to the
+  tracked files, and the staged changes. One scan sees none of the other two
+  surfaces.
+- **MK-GITLEAKS-2** — Every scan must run with `--redact`. A finding names the
+  rule, the file, and the line. The finding must not print the secret value, in
+  a terminal or in a CI log.
+- **MK-GITLEAKS-3** — The org pack must ship `.gitleaks.toml`. The file must
+  extend the default rules of gitleaks, and it must carry no repository
+  identity, per SYNC-IDENTITY. A repo-specific false positive goes into the
+  consumer `.gitleaksignore`, one fingerprint per line.
+- **MK-GITLEAKS-4** — The operator installs gitleaks, for example from Homebrew.
+  No deps manifest provides it. In CI, the setup-gitleaks action installs it,
+  per WFL-GITLEAKS.
+
+An untracked file stays invisible to the three scans until `git add` stages it,
+and only staged content can reach a commit. A gitignored secret store, for
+example a local `.env` file, therefore never trips the gate.
 
 <a id="mk-local"></a>
 
