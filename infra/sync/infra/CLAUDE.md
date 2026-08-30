@@ -115,7 +115,8 @@ backend. Each stack keeps its own key.
   because a plan writes no state.
 - Use `endpoints = { s3 = ... }` and `use_path_style`. The arguments `endpoint`
   and `force_path_style` are deprecated.
-- The backend takes its credential from the environment. The backend block must
+- The backend takes its credential from the environment, or from the
+  `~/.aws/credentials` profile that `AWS_PROFILE` names. The backend block must
   not hold a key.
 - The state bucket has versioning on, and a lifecycle rule expires a noncurrent
   version after 30 days.
@@ -144,19 +145,23 @@ and must not declare an API key.
   destroy of `infra/dev`, `infra/train`, and `infra/image`; Object Storage in
   the project; read of billing data. The policy must not hold `IAMManager`,
   `OrganizationManager`, or `ProjectManager`.
-- **Operator.** A human holds its key (`SCW_ACCESS_KEY`, `SCW_SECRET_KEY`,
-  `SCW_DEFAULT_PROJECT_ID`, `SCW_DEFAULT_ORGANIZATION_ID`). Its policy adds the
-  IAM administration for `infra/persistent`. In CI, only a protected manual
-  dispatch uses it.
+- **Operator.** A human holds its key, in a HOME profile of its own or in the
+  `infra-admin` CI environment. Its policy adds the IAM administration for
+  `infra/persistent`. In CI, only a protected manual dispatch uses it.
 - **Train.** Its policy permits Object Storage in the project, and nothing else.
   Each of its keys lives for one campaign.
-- **Agent.** An agent holds its key in the `.env` of its checkout. The key takes
-  the smallest scope that the task needs, and a short expiry.
+- **Agent.** An agent key lives in the HOME profiles of its project: a
+  `~/.config/scw/config.yaml` profile and a matching `~/.aws/credentials`
+  section, each under the project short code. The key takes the smallest scope
+  that the task needs, and a short expiry.
 
-Each checkout holds its own `.env`, with its own key. Run each command from the
-checkout of the target project. A command from an other checkout uses an other
-key, and its output can look correct. Treat an authentication failure first as
-an expired key.
+Every local `scw` command must name its profile: `scw --profile <code> ...` on a
+command line, or `SCW_PROFILE=<code>` for a script. The S3 tools take
+`AWS_PROFILE=<code>`, and the tofu provider takes `SCW_PROFILE` or a `profile`
+argument. No profile is active by default, so a command with no profile fails
+loudly. The environment beats a profile in every Scaleway tool: keep `SCW_*` and
+`AWS_*` out of the local shell. A wrong identity can look correct, so treat an
+authentication failure first as an expired key.
 
 CI must export exactly one credential set, as environment variables. The
 `provider` block must not set `access_key`, `secret_key`, or `project_id`. IAM
