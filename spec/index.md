@@ -26,34 +26,8 @@ contract, the ID conventions, and the document tables.
 
 ## Conventions
 
-A unit is one implementable design element. An invisible HTML anchor marks each
-unit, and the unit ID is the anchor in upper case:
-
-```markdown
-<a id="sync-packs"></a>
-
-## Packs
-
-- **SYNC-PACKS-1** — The `org` pack must …
-```
-
-- The anchor of a unit must start with the code of its document, in lower case,
-  followed by a hyphen.
-- A unit extends from its anchor to the next unit anchor or heading, whichever
-  comes first.
-- A rule ID names one requirement inside a unit. A rule is a bold-lead list
-  item: the bold rule ID, one em dash, then the requirement text, as the example
-  above shows.
-- Rule numbers only append: never renumber a rule, and never reuse a number.
-- An ID must not change. To retire a unit: delete its anchor and its register
-  row, and add the ID to the "Retired IDs" table of [STATUS.md](STATUS.md).
-- Each design document describes the target design in the current state only.
-  [ROADMAP.md](ROADMAP.md), [STATUS.md](STATUS.md), and `LEARNING.md` are
-  records: only a record says when work occurs, and only a record refers to an
-  earlier state. A repository adds `LEARNING.md` only when it runs campaigns.
-- A citation of a unit of a sibling repository is a prose token with the
-  repository name in front, for example FuguOracle OPS-GET-4. It is never a
-  link, and it never names a plan.
+The ID overlay lives in [spec/CLAUDE.md](CLAUDE.md): the unit anchors, the rule
+shape, the append-only numbers, the retire procedure, and the citation forms.
 
 ## Specification documents
 

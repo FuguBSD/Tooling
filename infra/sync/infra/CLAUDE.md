@@ -152,16 +152,17 @@ and must not declare an API key.
   Each of its keys lives for one campaign.
 - **Agent.** An agent key lives in the HOME profiles of its project: a
   `~/.config/scw/config.yaml` profile and a matching `~/.aws/credentials`
-  section, each under the project short code. The key takes the smallest scope
-  that the task needs, and a short expiry.
+  section, each named for its Scaleway Project, for example `fugustx`. The key
+  takes the smallest scope that the task needs, and a short expiry.
 
-Every local `scw` command must name its profile: `scw --profile <code> ...` on a
-command line, or `SCW_PROFILE=<code>` for a script. The S3 tools take
-`AWS_PROFILE=<code>`, and the tofu provider takes `SCW_PROFILE` or a `profile`
-argument. No profile is active by default, so a command with no profile fails
-loudly. The environment beats a profile in every Scaleway tool: keep `SCW_*` and
-`AWS_*` out of the local shell. A wrong identity can look correct, so treat an
-authentication failure first as an expired key.
+Every local `scw` command must name its profile: `scw --profile <profile> ...`
+on a command line, or `SCW_PROFILE=<profile>` for a script. The S3 tools take
+`AWS_PROFILE=<profile>`, and the tofu provider takes `SCW_PROFILE` or a
+`profile` argument. No profile is active by default, so a command with no
+profile fails loudly. The environment beats a profile in every Scaleway tool:
+keep the credential variables out of the local shell. The profile selectors
+carry no secret. A wrong identity can look correct, so treat an authentication
+failure first as an expired key.
 
 CI must export exactly one credential set, as environment variables. The
 `provider` block must not set `access_key`, `secret_key`, or `project_id`. IAM
@@ -277,10 +278,11 @@ make infra-cost                 # month-to-date consumption against the budget
 make infra-watchdog             # destroy an idle train stack; report an orphan
 ```
 
-`make check` must call `make infra-check`, so a local run reproduces the CI
-gate. Do not hardcode a price in the repository: read `hourly_price` from the
-`scaleway_instance_server_type` data source, or the Product Catalog API for an
-Elastic Metal offer.
+The consumer defines these targets in its own make fragment: no shared fragment
+ships them yet. `make check` must call `make infra-check`, so a local run
+reproduces the CI gate. Do not hardcode a price in the repository: read
+`hourly_price` from the `scaleway_instance_server_type` data source, or the
+Product Catalog API for an Elastic Metal offer.
 
 ## CI
 
