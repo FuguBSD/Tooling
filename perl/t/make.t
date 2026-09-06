@@ -448,7 +448,26 @@ for my $target (qw(format-md format-md-fix deps deps-test deps-develop)) {
 			qr{scripts/deps $ENV_OF{$target}},
 			"and $target runs scripts/deps $ENV_OF{$target}"
 		);
+
+		# MK-DEPS-2: every chain installs the tool
+		# environment, and it installs before the rest.
+		like(
+			$output,
+			qr{scripts/deps tool},
+			"and $target installs the tool environment"
+		);
+		like(
+			$output,
+			qr{scripts/deps tool.*scripts/deps $ENV_OF{$target}}s,
+			"and $target installs tool first"
+		);
 	}
+
+	# MK-DEPS-3: the three names are the whole set. A deps-tool
+	# target would break the setup-perl action, which computes the
+	# name from its dependencies input.
+	( $exit, $output ) = run_in( $org, 'make -n deps-tool' );
+	isnt( $exit, 0, 'no deps-tool target exists' );
 }
 
 # A python consumer serves the uv targets: the fragment appends them

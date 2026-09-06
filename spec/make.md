@@ -25,7 +25,8 @@ fragment, the gitleaks gate, and the consumer hook.
 - **MK-VERBS-4** — The target names `deps`, `deps-test`, and `deps-develop` must
   not change. `mk/org.mk` must define the three targets over `$(DEPS)`, because
   the org pack ships `scripts/deps`. The setup-perl action computes the names
-  from its `dependencies` input.
+  from its `dependencies` input. `make deps` also covers the `tool` environment,
+  per MK-DEPS-2.
 - **MK-VERBS-5** — `format-md` must join `FORMAT_TARGETS`, and `format-md-fix`
   must join `FORMAT_FIX_TARGETS`. Only `mk/org.mk` defines the pair. prettier
   runs through bunx: the operator installs bun, and a CI job runs the setup-bun
@@ -158,13 +159,38 @@ finding, so a credential stops at the commit gate, before a push.
   extend the default rules of gitleaks, and it must carry no repository
   identity, per SYNC-IDENTITY. A repo-specific false positive goes into the
   consumer `.gitleaksignore`, one fingerprint per line.
-- **MK-GITLEAKS-4** — The operator installs gitleaks, for example from Homebrew.
-  No deps manifest provides it. In CI, the setup-gitleaks action installs it,
-  per WFL-GITLEAKS.
+- **MK-GITLEAKS-4** — Each deps manifest must provide gitleaks in the `tool`
+  environment. A repository must hold one manifest for each operating system
+  that it supports. The operator and CI both install gitleaks with `make deps`.
+  A CI job that installs it must put `~/.local/bin` on the path. The
+  setup-gitleaks action holds a second pin of the same version until
+  WFL-GITLEAKS retires it.
 
 An untracked file stays invisible to the three scans until `git add` stages it,
 and only staged content can reach a commit. A gitignored secret store, for
 example a local `.env` file, therefore never trips the gate.
+
+<a id="mk-deps"></a>
+
+## The dependency environments
+
+`scripts/deps` reads `deps/<OS>.txt` and installs the entries of one
+environment. The org pack ships the script, and `mk/org.mk` defines the targets
+over `$(DEPS)`.
+
+- **MK-DEPS-1** — The environments are `tool`, `runtime`, `test` and `develop`.
+  `scripts/deps` must reject every other word, in a manifest line and on the
+  command line.
+- **MK-DEPS-2** — The `deps` target must run the `tool` environment and then the
+  `runtime` environment. `deps-test` and `deps-develop` chain over `deps`, so
+  `tool` installs one time in each chain.
+- **MK-DEPS-3** — A `deps-tool` target must not exist, because MK-VERBS-4 fixes
+  the three target names.
+- **MK-DEPS-4** — The `tool` environment must hold the tools that a gate needs,
+  for example gitleaks. A `tool` entry must not use the signify tier, because
+  that tier needs `signify(1)`.
+- **MK-DEPS-5** — A manifest with a signify-tier entry must name the signify
+  package in its `tool` environment. OpenBSD holds the command in base.
 
 <a id="mk-local"></a>
 

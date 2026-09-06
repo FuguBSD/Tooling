@@ -28,13 +28,25 @@ sub write_file ( $path, $content )
 #	A directory that holds deps/<os>.txt. deps reads the manifest
 #	relative to the current directory. Thus tests chdir into this
 #	directory.
-sub fixture ( $os, $manifest )
+sub fixture ( $os, $manifest, $digests = undef )
 {
 	my $dir = tempdir( CLEANUP => 1 );
 	make_path("$dir/deps");
-	write_file( "$dir/deps/$os.txt", $manifest );
+	write_file( "$dir/deps/$os.txt",    $manifest );
+	write_file( "$dir/deps/SHA256.txt", $digests ) if defined $digests;
 
 	return $dir;
+}
+
+# sums(@urls):
+#	A digest file that records each URL. The digest value never
+#	matters here: a dry run resolves the URL and downloads
+#	nothing.
+sub sums (@urls)
+{
+	my $zero = "0" x 64;
+
+	return join q{}, map { "SHA256 ($_) = $zero\n" } @urls;
 }
 
 # run_in($dir, @args):
@@ -244,7 +256,10 @@ EOF
 	    . "runtime dist https://example.org/dl/Fugu.tar.gz\n"
 	    . "runtime cpan Foo::Bar\n";
 	my ( $exit, $output ) = run_in(
-		fixture( 'OpenBSD', $manifest ),
+		fixture(
+			'OpenBSD', $manifest,
+			sums("https://example.org/dl/Fugu.tar.gz")
+		),
 		'--os OpenBSD --dry-run runtime'
 	);
 	is( $exit, 0, 'a dist line parses' );
@@ -281,8 +296,13 @@ qr{^\+ \S+/ftp \S+/Fugu\.tar\.gz https://example\.org/dl/Fugu\.tar\.gz$}m,
 {
 	my $manifest =
 	    "runtime bin scw https://example.org/dl/cli_2.0_{os}_{arch}\n";
-	my ( $exit, $output ) = run_in( fixture( 'Linux', $manifest ),
-		'--os Linux --arch x86_64 --dry-run runtime' );
+	my ( $exit, $output ) = run_in(
+		fixture(
+			'Linux', $manifest,
+			sums("https://example.org/dl/cli_2.0_linux_amd64")
+		),
+		'--os Linux --arch x86_64 --dry-run runtime'
+	);
 	is( $exit, 0, 'a bin line parses' );
 	like(
 		$output,
@@ -291,8 +311,13 @@ qr{^\+ \S+/ftp \S+/Fugu\.tar\.gz https://example\.org/dl/Fugu\.tar\.gz$}m,
 	);
 	like(
 		$output,
-qr{^\+ \S+/ftp \S+/\.local/bin/scw https://example\.org/dl/cli_2\.0_linux_amd64$}m,
+qr{^\+ \S+/ftp \S+/cli_2\.0_linux_amd64 https://example\.org/dl/cli_2\.0_linux_amd64$}m,
 		'the placeholders become the platform words'
+	);
+	like(
+		$output,
+		qr{^\+ cp \S+/cli_2\.0_linux_amd64 \S+/\.local/bin/scw$}m,
+		'the checked file moves into ~/.local/bin'
 	);
 	like(
 		$output,
@@ -310,8 +335,16 @@ qr{^\+ \S+/ftp \S+/\.local/bin/scw https://example\.org/dl/cli_2\.0_linux_amd64$
 	      "runtime bin gh "
 	    . "https://example.org/dl/gh_2.0_{os}_{arch}.tar.gz "
 	    . "gh_2.0_{os}_{arch}/bin/gh\n";
-	my ( $exit, $output ) = run_in( fixture( 'Linux', $manifest ),
-		'--os Linux --arch x86_64 --dry-run runtime' );
+	my ( $exit, $output ) = run_in(
+		fixture(
+			'Linux',
+			$manifest,
+			sums(
+"https://example.org/dl/gh_2.0_linux_amd64.tar.gz"
+			)
+		),
+		'--os Linux --arch x86_64 --dry-run runtime'
+	);
 	is( $exit, 0, 'a bin line with an archive parses' );
 	like(
 		$output,
@@ -339,10 +372,15 @@ qr{^\+ tar -xzf \S+/gh_2\.0_linux_amd64\.tar\.gz -C \S+ gh_2\.0_linux_amd64/bin/
 {
 	my $manifest =
 	      "runtime bin gh "
-	    . "https://example.org/dl/gh_2.0_macOS_{arch}.zip "
-	    . "gh_2.0_macOS_{arch}/bin/gh\n";
-	my ( $exit, $output ) = run_in( fixture( 'Darwin', $manifest ),
-		'--os Darwin --arch arm64 --dry-run runtime' );
+	    . "https://example.org/dl/gh_2.0_{os}_{arch}.zip "
+	    . "gh_2.0_{os}_{arch}/bin/gh\n";
+	my ( $exit, $output ) = run_in(
+		fixture(
+			'Darwin', $manifest,
+			sums("https://example.org/dl/gh_2.0_macOS_arm64.zip")
+		),
+		'--os Darwin --arch arm64 --dry-run runtime'
+	);
 	is( $exit, 0, 'a bin line with a zip archive parses' );
 	like(
 		$output,
@@ -370,24 +408,41 @@ qr{^\+ unzip -q \S+/gh_2\.0_macOS_arm64\.zip gh_2\.0_macOS_arm64/bin/gh -d \S+$}
 		'and says why' );
 }
 
-# The architecture aliases of Linux and Darwin map to the
-# release-asset spelling. A name with no alias passes through.
+# The digest file selects the platform spelling (SYNC-ALIAS). One
+# machine word gives several candidates, and the recorded name picks
+# one of them.
 {
-	my $dir =
-	    fixture( 'Darwin', "runtime bin x https://e.org/{os}_{arch}\n" );
+	my $manifest = "runtime bin x https://e.org/{os}_{arch}\n";
 
-	my ( undef, $output ) =
-	    run_in( $dir, '--os Darwin --arch aarch64 --dry-run runtime' );
+	for my $machine (qw(aarch64 arm64)) {
+		my ( undef, $output ) = run_in(
+			fixture(
+				'Darwin', $manifest,
+				sums("https://e.org/darwin_arm64")
+			),
+			"--os Darwin --arch $machine --dry-run runtime"
+		);
+		like(
+			$output,
+			qr{https://e\.org/darwin_arm64},
+			"$machine resolves to the recorded darwin_arm64"
+		);
+	}
+
+	# The same entry and the same machine, with another recorded
+	# name: the alias table covers the whole cross product.
+	my ( undef, $output ) = run_in(
+		fixture(
+			'Darwin', $manifest,
+			sums("https://e.org/osx_aarch64")
+		),
+		'--os Darwin --arch aarch64 --dry-run runtime'
+	);
 	like(
 		$output,
-		qr{https://e\.org/darwin_arm64},
-		'aarch64 maps to arm64'
+		qr{https://e\.org/osx_aarch64},
+		'another recorded name selects another candidate'
 	);
-
-	( undef, $output ) =
-	    run_in( $dir, '--os Darwin --arch arm64 --dry-run runtime' );
-	like( $output, qr{https://e\.org/darwin_arm64},
-		'arm64 passes through' );
 }
 
 # Binaries install last: after the packages and the CPAN modules.
@@ -399,7 +454,10 @@ qr{^\+ unzip -q \S+/gh_2\.0_macOS_arm64\.zip gh_2\.0_macOS_arm64/bin/gh -d \S+$}
 	    . "runtime cpan Foo::Bar\n"
 	    . "runtime bin scw https://example.org/dl/scw-cli\n";
 	my ( $exit, $output ) = run_in(
-		fixture( 'OpenBSD', $manifest ),
+		fixture(
+			'OpenBSD', $manifest,
+			sums("https://example.org/dl/scw-cli")
+		),
 		'--os OpenBSD --dry-run runtime'
 	);
 	is( $exit, 0, 'a mixed manifest with a bin line parses' );
@@ -454,7 +512,8 @@ qr{^\+ unzip -q \S+/gh_2\.0_macOS_arm64\.zip gh_2\.0_macOS_arm64/bin/gh -d \S+$}
 # The real manifests parse. Thus a typo in one fails here, not on
 # somebody's laptop halfway through an install.
 for my $os (qw(OpenBSD Linux Darwin)) {
-	for my $env (qw(runtime test develop)) {
+	next unless -f "$root/deps/$os.txt";
+	for my $env (qw(tool runtime test develop)) {
 		my ( $exit, $output ) =
 		    run_in( $root, "--os $os --dry-run $env" );
 		is( $exit, 0, "deps/$os.txt parses for $env" )
