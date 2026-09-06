@@ -88,8 +88,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup gitleaks
-        uses: ./actions/setup-gitleaks
+      # The manifest provides gitleaks in the tool environment, so
+      # the operator gate and the CI gate use one pin (MK-GITLEAKS-4).
+      - name: Install the gate tools
+        run: |
+          make deps
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Scan for secrets
         run: make gitleaks

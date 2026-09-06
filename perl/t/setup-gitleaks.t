@@ -89,4 +89,84 @@ subtest 'the checksum verifies the download' => sub {
 	cmp_ok( $install, '>', $verify, 'and runs before the install' );
 };
 
+# MK-GITLEAKS-4 keeps a second pin in the action until WFL-GITLEAKS
+# retires it. The manifest pin and the action pin must name one
+# version and one digest. Two pins otherwise run two binaries.
+subtest 'the action pin matches the manifest pin' => sub {
+	my $sums = _slurp("$root/deps/SHA256.txt");
+	plan skip_all => 'no digest file' unless defined $sums;
+
+	opendir my $dh, "$root/deps" or plan skip_all => 'no deps directory';
+	my @manifest =
+	    sort grep { /\.txt\z/ && !/\A(?:SHA256|KEYS)/ } readdir $dh;
+	closedir $dh;
+
+	# MK-GITLEAKS-4: the repository holds one manifest for each
+	# operating system that it supports, so the operator gate runs
+	# on each one.
+	is_deeply(
+		\@manifest,
+		[ 'Darwin.txt', 'Linux.txt' ],
+		'deps/ holds a manifest for each supported system'
+	);
+
+	# MK-GITLEAKS-4: every manifest of the repository provides
+	# gitleaks, and it provides it in the tool environment.
+	my ( %version, %url );
+	for my $name (@manifest) {
+		my $text = _slurp("$root/deps/$name") // next;
+		my ($entry) =
+		    grep { /\A\s*tool\s+bin\s+gitleaks\s/ } split /\n/, $text;
+		ok( $entry, "deps/$name provides gitleaks in tool" ) or next;
+		my ($v) = $entry =~ m{/download/v([0-9.]+)/};
+		$version{$name} = $v;
+		my ($u) = $entry =~ /\A\s*tool\s+bin\s+gitleaks\s+(\S+)/;
+		$url{$name} = $u;
+	}
+
+	# MK-GITLEAKS-4 requires the entry, so an absent one fails
+	# here. A skip_all after an assertion would turn the failed
+	# assertion above into a pass.
+	if ( !%version ) {
+		fail('a manifest names gitleaks in the tool environment');
+		return;
+	}
+
+	my ($default) = $yml =~ /default:\s*"([0-9.]+)"/;
+
+	# Every manifest pins the operator gate of one platform, so
+	# each one must name the version that the action pins.
+	for my $name ( sort keys %version ) {
+		is( $version{$name}, $default,
+			"deps/$name pins the version of the action" );
+	}
+	my $version = $default;
+
+	my %digest;
+	for my $line ( split /\n/, $sums ) {
+		$digest{$1} = $2
+		    if $line =~ /\ASHA256 \(([^()\s]+)\) = ([0-9a-f]{64})\z/;
+	}
+
+	my ($checksum) = $yml =~ /default:\s*"([0-9a-f]{64})"/;
+
+	# The digest file keys on the whole download URL, so the test
+	# expands the Linux entry into the platform of the action. A
+	# match on the file name alone would take the line of another
+	# upstream that publishes the same asset name.
+	# A skip_all after an assertion turns a failed one into a pass,
+	# so an absent entry fails here instead.
+	my $template = $url{'Linux.txt'};
+	if ( !defined $template ) {
+		fail('deps/Linux.txt names a gitleaks URL');
+		return;
+	}
+	my $key = $template;
+	$key =~ s/\{os\}/linux/g;
+	$key =~ s/\{arch\}/x64/g;
+	ok( exists $digest{$key}, "deps/SHA256.txt records $key" );
+	is( $checksum, $digest{$key},
+		'and the action pins the recorded linux_x64 digest' );
+};
+
 done_testing();

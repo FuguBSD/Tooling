@@ -1,0 +1,6 @@
+# Dependencies of the Tooling repository itself on macOS. The lint and
+# the format gates need the two CPAN modules, and the secret gate needs
+# gitleaks (MK-GITLEAKS-4).
+test cpan Perl::Critic
+test cpan Perl::Tidy
+tool bin gitleaks https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_{os}_{arch}.tar.gz gitleaks
