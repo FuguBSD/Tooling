@@ -49,8 +49,9 @@ thin callers of the reusable workflows.
     prove -l perl/t/sync.t   # one test file
 
 The python gates run uv, the Markdown gates run prettier through bunx, and the
-gitleaks gate runs gitleaks. The operator installs uv, bun, and gitleaks, for
-example from Homebrew. No deps manifest provides them.
+gitleaks gate runs gitleaks. The operator installs uv and bun, for example from
+Homebrew, and no deps manifest provides them. A deps manifest provides gitleaks,
+in the `tool` environment (MK-GITLEAKS-4).
 
 ## Commit scopes
 

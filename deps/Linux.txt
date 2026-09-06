@@ -2,3 +2,11 @@
 # and the tests run on core Perl; the lint and format gates need these.
 test cpan Perl::Critic
 test cpan Perl::Tidy
+# perl/t/deps-verify.t drives the signify tier of scripts/deps, so the
+# test environment needs the command. OpenBSD holds it in base.
+test pkg signify-openbsd
+# The secret gate of make check runs gitleaks. The tool environment
+# installs before every other one, so the gate has its binary in each
+# deps chain. The release assets name the x86_64 architecture "x64",
+# and the alias table of scripts/deps resolves the word.
+tool bin gitleaks https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_{os}_{arch}.tar.gz gitleaks
