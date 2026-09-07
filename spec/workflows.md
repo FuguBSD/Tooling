@@ -32,6 +32,40 @@ action.
 - **WFL-REUSE-3** — `environment: release` must stay in the callee job, and
   `permissions` and `secrets: inherit` must stay in the caller.
 
+<a id="wfl-sign"></a>
+
+## The release signature
+
+`scripts/deps` verifies a download in two tiers, and the signify tier reads a
+manifest that the upstream publishes beside the download. The Perl release
+workflow publishes that manifest, so one change serves every distribution of the
+organization.
+
+- **WFL-SIGN-1** — The Perl release workflow must publish a `SHA256` file and a
+  `SHA256.sig` file beside the release tarballs.
+- **WFL-SIGN-2** — The manifest must name the versioned tarball and the stable
+  tarball. A consumer can name either one, and SYNC-DOWNLOAD-6 keys the manifest
+  on the file name.
+- **WFL-SIGN-3** — The manifest must hold a file name and never a path. One
+  release directory holds unique names.
+- **WFL-SIGN-4** — Two organization secrets must hold the release keys under
+  fixed names. One organization variable must name the active slot. A step that
+  names one fixed secret cannot rotate without a human.
+- **WFL-SIGN-5** — Each secret and each caller input must reach the signing step
+  through the environment. A value in the script text becomes part of a command.
+- **WFL-SIGN-6** — The private key must land in a file with no group mode and no
+  other mode. The step must remove that file, whatever the outcome of the run.
+- **WFL-SIGN-7** — A release must succeed when the organization names no slot.
+  The step must report that it signed nothing, and it must attach no manifest.
+- **WFL-SIGN-8** — The key file must end in a newline. `signify(1)` refuses a
+  key file without one.
+- **WFL-SIGN-9** — A named slot that holds no key must fail the release. That is
+  a release that was meant to carry a signature.
+- **WFL-SIGN-10** — The workflow must refuse a distribution name that holds
+  whitespace or a parenthesis. The manifest reader of a consumer takes neither.
+- **WFL-SIGN-11** — The package install must run in its own step, before a
+  secret reaches the environment of any step.
+
 <a id="wfl-web"></a>
 
 ## The web publish workflow

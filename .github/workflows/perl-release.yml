@@ -83,13 +83,119 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
 
+      # Each value reaches the script through the environment, as
+      # the signing step below does. A caller names the
+      # distribution, and a name in the script text becomes part of
+      # a command.
       - name: Build the distribution tarball
+        env:
+          DIST: ${{ inputs.dist }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          make dist VERSION=${{ steps.version.outputs.version }}
+          make dist VERSION="$VERSION"
           # The stable name serves releases/latest/download/<dist>.tar.gz,
           # the URL that the deps manifests of the consumers name.
-          cp build/${{ inputs.dist }}-${{ steps.version.outputs.version }}.tar.gz \
-            build/${{ inputs.dist }}.tar.gz
+          cp "build/$DIST-$VERSION.tar.gz" "build/$DIST.tar.gz"
+
+      # The signify tier of scripts/deps reads a manifest beside the
+      # download, and it keys that manifest on the file name. A
+      # consumer can name the versioned tarball or the stable one, so
+      # the manifest holds both.
+      #
+      # The install runs in its own step, before a secret is in the
+      # environment of any step. An unpinned package install must not
+      # run beside a private key.
+      - name: Install signify
+        if: vars.SIGNIFY_RELEASE_SLOT != ''
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes signify-openbsd
+
+      # The release key lives in one of two organization secrets, and
+      # an organization variable names the active slot. A step that
+      # named one fixed secret could not rotate without a human.
+      #
+      # The organization names no slot until FuguBSD/Website publishes
+      # the first key. A release then carries no signature, and it
+      # still releases. A slot that names an empty secret is a
+      # different thing: that is a release that was meant to be
+      # signed, so it fails.
+      - name: Sign the release assets
+        id: sign
+        shell: bash
+        env:
+          SLOT: ${{ vars.SIGNIFY_RELEASE_SLOT }}
+          KEY_A: ${{ secrets.SIGNIFY_RELEASE_KEY_A }}
+          KEY_B: ${{ secrets.SIGNIFY_RELEASE_KEY_B }}
+          DIST: ${{ inputs.dist }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -o pipefail
+
+          # The name guard runs first. A release with no slot signs
+          # nothing, and a name that no manifest can carry is still a
+          # name that a later release would sign.
+          case "$DIST" in
+            *[[:space:]\(\)]*)
+              echo "release: the dist name holds whitespace or a" \
+                "parenthesis: $DIST" >&2
+              exit 1 ;;
+          esac
+
+          if [ -z "$SLOT" ]; then
+            echo "release: the organization names no key slot," \
+              "so this release carries no signature"
+            echo "signed=no" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          case "$SLOT" in
+            A) key="$KEY_A" ;;
+            B) key="$KEY_B" ;;
+            *) echo "release: SIGNIFY_RELEASE_SLOT is '$SLOT'," \
+                 "and the slots are A and B" >&2
+               exit 1 ;;
+          esac
+
+          if [ -z "$key" ]; then
+            echo "release: slot $SLOT names no key" >&2
+            exit 1
+          fi
+
+          # The key file goes with the step, whatever the outcome. A
+          # failure below must leave no key for the steps that follow.
+          work=$(mktemp -d)
+          trap 'rm -rf "$work"' EXIT
+          umask 077
+
+          # signify(1) refuses a key file with no final newline.
+          printf '%s\n' "$key" > "$work/release.sec"
+
+          # The manifest names a file and never a path, because one
+          # release directory holds unique names. Each digest is read
+          # on its own, so no field of a sha256sum line has to survive
+          # a split.
+          : > build/SHA256
+          for name in "$DIST-$VERSION.tar.gz" "$DIST.tar.gz"; do
+            digest=$(sha256sum "build/$name" | sed 's|^\\||' \
+              | cut -d' ' -f1)
+            case "$digest" in
+              [0-9a-f]*) ;;
+              *) echo "release: cannot digest build/$name" >&2
+                 exit 1 ;;
+            esac
+            printf 'SHA256 (%s) = %s\n' "$name" "$digest" >> build/SHA256
+          done
+          sort -o build/SHA256 build/SHA256
+
+          signify-openbsd -S -s "$work/release.sec" \
+            -m build/SHA256 -x build/SHA256.sig
+
+          # The consumer verifies the signature against the published
+          # key, which this workflow does not hold. The manifest is
+          # public, so the log can carry it.
+          echo "signed=yes" >> "$GITHUB_OUTPUT"
+          cat build/SHA256
 
       - name: Keep the tarball as a workflow artifact
         uses: actions/upload-artifact@v4
@@ -103,9 +209,11 @@ jobs:
         with:
           tag: ${{ steps.version.outputs.tag }}
           title: ${{ inputs.name }} ${{ steps.version.outputs.version }}
-          files:
+          files: |
             build/${{ inputs.dist }}-${{ steps.version.outputs.version }}.tar.gz
             build/${{ inputs.dist }}.tar.gz
+            ${{ steps.sign.outputs.signed == 'yes' && 'build/SHA256' || '' }}
+            ${{ steps.sign.outputs.signed == 'yes' && 'build/SHA256.sig' || '' }}
           token: ${{ github.token }}
           body: |
             ## Installation
