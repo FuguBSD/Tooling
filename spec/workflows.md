@@ -24,6 +24,11 @@ action.
 - **WFL-REUSE-2** — Inside a reusable workflow, an action reference must use the
   full `FuguBSD/Tooling/...@main` path, never `./`. The workspace holds the
   caller's checkout.
+- **WFL-REUSE-4** — The Perl release workflow must accept the release tag as an
+  input. An environment that cannot push a tag makes the tag inside a workflow,
+  and GitHub raises no push event for a tag that `GITHUB_TOKEN` pushes. The
+  input must select both the checkout and the version. Without it the workflow
+  must read the ref of the push.
 - **WFL-REUSE-3** — `environment: release` must stay in the callee job, and
   `permissions` and `secrets: inherit` must stay in the caller.
 
