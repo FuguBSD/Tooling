@@ -49,14 +49,22 @@ organization.
 - **WFL-SIGN-3** — The manifest must hold a file name and never a path. One
   release directory holds unique names.
 - **WFL-SIGN-4** — Two organization secrets must hold the release keys under
-  fixed names, and one organization variable must name the active slot. A step
-  that names one fixed secret cannot rotate without a human.
-- **WFL-SIGN-5** — Each secret must reach the step through the environment. A
-  value in the script text becomes part of a command.
+  fixed names. One organization variable must name the active slot. A step that
+  names one fixed secret cannot rotate without a human.
+- **WFL-SIGN-5** — Each secret and each caller input must reach the signing step
+  through the environment. A value in the script text becomes part of a command.
 - **WFL-SIGN-6** — The private key must land in a file with no group mode and no
-  other mode, and the step must remove that file.
-- **WFL-SIGN-7** — A release must succeed when the organization declares no key.
+  other mode. The step must remove that file, whatever the outcome of the run.
+- **WFL-SIGN-7** — The key file must end in a newline, because `signify(1)`
+  refuses a key file without one.
+- **WFL-SIGN-8** — A release must succeed when the organization names no slot.
   The step must report that it signed nothing, and it must attach no manifest.
+- **WFL-SIGN-9** — A named slot that holds no key must fail the release. That is
+  a release that was meant to carry a signature.
+- **WFL-SIGN-10** — The workflow must refuse a distribution name that holds a
+  space or a parenthesis. The line form of the manifest reserves both.
+- **WFL-SIGN-11** — The package install must run in a step of its own, before a
+  secret reaches the environment of any step.
 
 <a id="wfl-web"></a>
 

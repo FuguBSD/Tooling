@@ -96,56 +96,98 @@ jobs:
       # consumer can name the versioned tarball or the stable one, so
       # the manifest holds both.
       #
+      # The install runs in its own step, before a secret is in the
+      # environment of any step. An unpinned package install must not
+      # run beside a private key.
+      - name: Install signify
+        if: vars.SIGNIFY_RELEASE_SLOT != ''
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes signify-openbsd
+
       # The release key lives in one of two organization secrets, and
       # an organization variable names the active slot. A step that
       # named one fixed secret could not rotate without a human.
       #
-      # The organization holds no key until FuguBSD/Website publishes
-      # one. A release with no key still releases, and it publishes no
-      # manifest: the signify tier then reports a release that
-      # publishes no signature, which is true.
+      # The organization names no slot until FuguBSD/Website publishes
+      # the first key. A release then carries no signature, and it
+      # still releases. A slot that names an empty secret is a
+      # different thing: that is a release that was meant to be
+      # signed, so it fails.
       - name: Sign the release assets
         id: sign
+        shell: bash
         env:
           SLOT: ${{ vars.SIGNIFY_RELEASE_SLOT }}
           KEY_A: ${{ secrets.SIGNIFY_RELEASE_KEY_A }}
           KEY_B: ${{ secrets.SIGNIFY_RELEASE_KEY_B }}
+          DIST: ${{ inputs.dist }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          case "$SLOT" in
-            A) key="$KEY_A" ;;
-            B) key="$KEY_B" ;;
-            *) key="" ;;
-          esac
+          set -o pipefail
 
-          if [ -z "$key" ]; then
-            echo "release: the organization declares no release key," \
+          if [ -z "$SLOT" ]; then
+            echo "release: the organization names no key slot," \
               "so this release carries no signature"
             echo "signed=no" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          sudo apt-get update
-          sudo apt-get install --yes signify-openbsd
+          case "$SLOT" in
+            A) key="$KEY_A" ;;
+            B) key="$KEY_B" ;;
+            *) echo "release: SIGNIFY_RELEASE_SLOT is '$SLOT'," \
+                 "and the slots are A and B" >&2
+               exit 1 ;;
+          esac
 
+          if [ -z "$key" ]; then
+            echo "release: slot $SLOT names no key" >&2
+            exit 1
+          fi
+
+          # The manifest line form reserves a parenthesis, and a
+          # reader that splits a line on a space needs a name with
+          # none. scripts/deps and sha256(1) each read this file.
+          case "$DIST" in
+            *[\ \(\)]*)
+              echo "release: the dist name holds a space or a" \
+                "parenthesis: $DIST" >&2
+              exit 1 ;;
+          esac
+
+          # The key file goes with the step, whatever the outcome. A
+          # failure below must leave no key for the steps that follow.
           work=$(mktemp -d)
+          trap 'rm -rf "$work"' EXIT
           umask 077
-          printf '%s' "$key" > "$work/release.sec"
 
-          # The manifest names each file, and never a path. One
-          # release directory holds unique names, so the key of the
-          # manifest is the name alone.
-          ( cd build && sha256sum \
-              "${{ inputs.dist }}-${{ steps.version.outputs.version }}.tar.gz" \
-              "${{ inputs.dist }}.tar.gz" \
-            | awk '{ print "SHA256 (" $2 ") = " $1 }' | sort > SHA256 )
+          # signify(1) refuses a key file with no final newline.
+          printf '%s\n' "$key" > "$work/release.sec"
+
+          # The manifest names a file and never a path, because one
+          # release directory holds unique names. Each digest is read
+          # on its own, so no field of a sha256sum line has to survive
+          # a split.
+          : > build/SHA256
+          for name in "$DIST-$VERSION.tar.gz" "$DIST.tar.gz"; do
+            digest=$(sha256sum "build/$name" | sed 's|^\\\\||' \
+              | cut -d' ' -f1)
+            case "$digest" in
+              [0-9a-f]*) ;;
+              *) echo "release: cannot digest build/$name" >&2
+                 exit 1 ;;
+            esac
+            printf 'SHA256 (%s) = %s\n' "$name" "$digest" >> build/SHA256
+          done
+          sort -o build/SHA256 build/SHA256
 
           signify-openbsd -S -s "$work/release.sec" \
             -m build/SHA256 -x build/SHA256.sig
-          rm -rf "$work"
 
-          # The signature verifies against the published key, so a
-          # release that no consumer can verify fails here and not in
-          # the install of every consumer.
+          # The consumer verifies the signature against the published
+          # key, which this workflow does not hold. The manifest is
+          # public, so the log can carry it.
           echo "signed=yes" >> "$GITHUB_OUTPUT"
           cat build/SHA256
 
