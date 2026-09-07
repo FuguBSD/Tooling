@@ -91,6 +91,64 @@ jobs:
           cp build/${{ inputs.dist }}-${{ steps.version.outputs.version }}.tar.gz \
             build/${{ inputs.dist }}.tar.gz
 
+      # The signify tier of scripts/deps reads a manifest beside the
+      # download, and it keys that manifest on the file name. A
+      # consumer can name the versioned tarball or the stable one, so
+      # the manifest holds both.
+      #
+      # The release key lives in one of two organization secrets, and
+      # an organization variable names the active slot. A step that
+      # named one fixed secret could not rotate without a human.
+      #
+      # The organization holds no key until FuguBSD/Website publishes
+      # one. A release with no key still releases, and it publishes no
+      # manifest: the signify tier then reports a release that
+      # publishes no signature, which is true.
+      - name: Sign the release assets
+        id: sign
+        env:
+          SLOT: ${{ vars.SIGNIFY_RELEASE_SLOT }}
+          KEY_A: ${{ secrets.SIGNIFY_RELEASE_KEY_A }}
+          KEY_B: ${{ secrets.SIGNIFY_RELEASE_KEY_B }}
+        run: |
+          case "$SLOT" in
+            A) key="$KEY_A" ;;
+            B) key="$KEY_B" ;;
+            *) key="" ;;
+          esac
+
+          if [ -z "$key" ]; then
+            echo "release: the organization declares no release key," \
+              "so this release carries no signature"
+            echo "signed=no" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          sudo apt-get update
+          sudo apt-get install --yes signify-openbsd
+
+          work=$(mktemp -d)
+          umask 077
+          printf '%s' "$key" > "$work/release.sec"
+
+          # The manifest names each file, and never a path. One
+          # release directory holds unique names, so the key of the
+          # manifest is the name alone.
+          ( cd build && sha256sum \
+              "${{ inputs.dist }}-${{ steps.version.outputs.version }}.tar.gz" \
+              "${{ inputs.dist }}.tar.gz" \
+            | awk '{ print "SHA256 (" $2 ") = " $1 }' | sort > SHA256 )
+
+          signify-openbsd -S -s "$work/release.sec" \
+            -m build/SHA256 -x build/SHA256.sig
+          rm -rf "$work"
+
+          # The signature verifies against the published key, so a
+          # release that no consumer can verify fails here and not in
+          # the install of every consumer.
+          echo "signed=yes" >> "$GITHUB_OUTPUT"
+          cat build/SHA256
+
       - name: Keep the tarball as a workflow artifact
         uses: actions/upload-artifact@v4
         with:
@@ -103,9 +161,11 @@ jobs:
         with:
           tag: ${{ steps.version.outputs.tag }}
           title: ${{ inputs.name }} ${{ steps.version.outputs.version }}
-          files:
+          files: |
             build/${{ inputs.dist }}-${{ steps.version.outputs.version }}.tar.gz
             build/${{ inputs.dist }}.tar.gz
+            ${{ steps.sign.outputs.signed == 'yes' && 'build/SHA256' || '' }}
+            ${{ steps.sign.outputs.signed == 'yes' && 'build/SHA256.sig' || '' }}
           token: ${{ github.token }}
           body: |
             ## Installation
