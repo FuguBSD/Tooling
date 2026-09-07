@@ -13,6 +13,9 @@ action.
   `actions/`, the actions of this repository, and local paths.
 - **WFL-ACTIONS-2** — The synced test `t/ci/workflows.t` must enforce
   WFL-ACTIONS-1 in every consumer.
+- **WFL-ACTIONS-3** — A workflow step must run `make deps` with no argument. A
+  word after it names a second target, and `make` stops. The synced test must
+  refuse such a step, because the fault reaches the runner alone.
 
 <a id="wfl-reuse"></a>
 
