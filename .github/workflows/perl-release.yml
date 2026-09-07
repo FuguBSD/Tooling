@@ -83,13 +83,19 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
 
+      # Each value reaches the script through the environment, as
+      # the signing step below does. A caller names the
+      # distribution, and a name in the script text becomes part of
+      # a command.
       - name: Build the distribution tarball
+        env:
+          DIST: ${{ inputs.dist }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          make dist VERSION=${{ steps.version.outputs.version }}
+          make dist VERSION="$VERSION"
           # The stable name serves releases/latest/download/<dist>.tar.gz,
           # the URL that the deps manifests of the consumers name.
-          cp build/${{ inputs.dist }}-${{ steps.version.outputs.version }}.tar.gz \
-            build/${{ inputs.dist }}.tar.gz
+          cp "build/$DIST-$VERSION.tar.gz" "build/$DIST.tar.gz"
 
       # The signify tier of scripts/deps reads a manifest beside the
       # download, and it keys that manifest on the file name. A
@@ -126,6 +132,16 @@ jobs:
         run: |
           set -o pipefail
 
+          # The name guard runs first. A release with no slot signs
+          # nothing, and a name that no manifest can carry is still a
+          # name that a later release would sign.
+          case "$DIST" in
+            *[[:space:]\(\)]*)
+              echo "release: the dist name holds whitespace or a" \
+                "parenthesis: $DIST" >&2
+              exit 1 ;;
+          esac
+
           if [ -z "$SLOT" ]; then
             echo "release: the organization names no key slot," \
               "so this release carries no signature"
@@ -146,16 +162,6 @@ jobs:
             exit 1
           fi
 
-          # The manifest line form reserves a parenthesis, and a
-          # reader that splits a line on a space needs a name with
-          # none. scripts/deps and sha256(1) each read this file.
-          case "$DIST" in
-            *[\ \(\)]*)
-              echo "release: the dist name holds a space or a" \
-                "parenthesis: $DIST" >&2
-              exit 1 ;;
-          esac
-
           # The key file goes with the step, whatever the outcome. A
           # failure below must leave no key for the steps that follow.
           work=$(mktemp -d)
@@ -171,7 +177,7 @@ jobs:
           # a split.
           : > build/SHA256
           for name in "$DIST-$VERSION.tar.gz" "$DIST.tar.gz"; do
-            digest=$(sha256sum "build/$name" | sed 's|^\\\\||' \
+            digest=$(sha256sum "build/$name" | sed 's|^\\||' \
               | cut -d' ' -f1)
             case "$digest" in
               [0-9a-f]*) ;;

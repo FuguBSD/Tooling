@@ -55,15 +55,15 @@ organization.
   through the environment. A value in the script text becomes part of a command.
 - **WFL-SIGN-6** — The private key must land in a file with no group mode and no
   other mode. The step must remove that file, whatever the outcome of the run.
-- **WFL-SIGN-7** — The key file must end in a newline, because `signify(1)`
-  refuses a key file without one.
-- **WFL-SIGN-8** — A release must succeed when the organization names no slot.
+- **WFL-SIGN-7** — A release must succeed when the organization names no slot.
   The step must report that it signed nothing, and it must attach no manifest.
+- **WFL-SIGN-8** — The key file must end in a newline. `signify(1)` refuses a
+  key file without one.
 - **WFL-SIGN-9** — A named slot that holds no key must fail the release. That is
   a release that was meant to carry a signature.
-- **WFL-SIGN-10** — The workflow must refuse a distribution name that holds a
-  space or a parenthesis. The line form of the manifest reserves both.
-- **WFL-SIGN-11** — The package install must run in a step of its own, before a
+- **WFL-SIGN-10** — The workflow must refuse a distribution name that holds
+  whitespace or a parenthesis. The manifest reader of a consumer takes neither.
+- **WFL-SIGN-11** — The package install must run in its own step, before a
   secret reaches the environment of any step.
 
 <a id="wfl-web"></a>

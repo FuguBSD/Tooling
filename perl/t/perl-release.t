@@ -94,6 +94,15 @@ subtest 'a release with no key still releases' => sub {
 	);
 	like( $SIGN, qr/signed=no/, 'it reports that it signed nothing' );
 
+	# The step must leave the release to continue. Without the
+	# exit the run falls into the arm that names an unknown slot,
+	# and every release then fails.
+	like(
+		$SIGN,
+		qr/signed=no" >> "\$GITHUB_OUTPUT"\n\s+exit 0/,
+		'and it leaves the release to continue'
+	);
+
 	# A slot that names an empty secret is a different thing. That
 	# is a release that was meant to carry a signature.
 	like(
@@ -123,11 +132,18 @@ subtest 'the manifest names both tarballs' => sub {
 	like( $SIGN, qr/sha256sum/,         'the step digests each file' );
 
 	# The manifest names a file and never a path, because one
-	# release directory holds unique names.
+	# release directory holds unique names. A key that held a path
+	# makes scripts/deps die for every consumer, so the guard
+	# reads the argument of the printf and not the format alone.
 	like(
 		$SIGN,
-		qr/printf 'SHA256 \(%s\) = %s/,
-		'and it writes the line form that the script parses'
+		qr/printf 'SHA256 \(%s\) = %s\\n' "\$name" "\$digest"/,
+		'and it writes the line form with the bare name'
+	);
+	unlike(
+		$SIGN,
+		qr{printf 'SHA256[^\n]*"build/},
+		'so no path enters the manifest'
 	);
 	like(
 		$SIGN,
@@ -139,12 +155,25 @@ subtest 'the manifest names both tarballs' => sub {
 subtest 'the manifest takes the name it is given' => sub {
 	ok( $SIGN, 'the signing step is there' ) or return;
 
-	# The line form reserves a parenthesis, and a reader that
-	# splits a line on a space needs a name with none.
+	# The manifest reader of a consumer takes no whitespace and no
+	# parenthesis in a key.
 	like(
 		$SIGN,
-		qr/the dist name holds a space or a/,
+		qr/the dist name holds whitespace or a/,
 		'the step refuses a name that the form cannot carry'
+	);
+	like( $SIGN, qr/\*\[\[:space:\]/,
+		'and the class holds every whitespace, a tab included' );
+
+	# A release with no slot signs nothing, and a name that no
+	# manifest can carry is still a name that a later release
+	# would sign. The guard therefore runs first.
+	my ($before) = $SIGN =~ /\A(.*?)the dist name holds/s;
+	ok( defined $before, 'the guard is in the step' );
+	unlike(
+		$before,
+		qr/-z "\$SLOT"/,
+		'and it runs before the release with no slot leaves'
 	);
 
 	# A digest that no read produced would sign a manifest of
