@@ -53,9 +53,10 @@ rounds. You dispatch each agent, and a `fixer` agent makes every fix.
    accepted finding. Give it the repository path, the diff path, and the ledger
    path.
 6. After the fixer commits, write the fix diff:
-   `git diff <round commit>...HEAD > explore/review/fix-<N>.diff`.
-7. Stop after a round with no quorum finding, or after round three. Round three
-   runs no fixer.
+   `git diff <round commit>...HEAD > explore/review/fix-<N>.diff`. When the
+   fixer commits nothing, write no file.
+7. Stop after a round with no quorum finding, after a round whose fixer commits
+   nothing, or after round three. Round three runs no fixer.
 
 Round two and round three review the fix diff of the last round, and each file
 that the fixer report cites.
@@ -90,5 +91,5 @@ The pull request body holds the result of the panel:
 | 1     | 7        | 3      | —       |
 ```
 
-The residue is each quorum finding of round three and each `open` entry. The
-operator decides each one.
+The residue is each quorum finding of round three, each `open` entry, and each
+accepted finding of a round with no fix commit. The operator decides each one.

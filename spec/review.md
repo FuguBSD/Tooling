@@ -32,7 +32,8 @@ every consumer.
   last round, and each file that the fixer report cites. A reviewer must confirm
   every `fixed` entry, and must report a new defect inside that scope only.
 - **REV-LOOP-7** — The loop must stop after a round with no quorum finding, or
-  after round three. Round three must run no fixer.
+  after round three. A fixer that commits nothing also stops the loop, and the
+  main session must write no fix diff. Round three must run no fixer.
 - **REV-LOOP-8** — The main session must dispatch. After the first launch of a
   round it must edit no repository file. A file under `explore/` is scratch
   space, and not a repository file.
@@ -43,9 +44,9 @@ every consumer.
 - **REV-LOOP-10** — A minor finding must take the disposition `recorded`, and no
   round must fix it. A rejection must cite the code, the specification, or a
   decision.
-- **REV-LOOP-11** — The residue is each quorum finding of round three and each
-  `open` entry. The pull request body must hold the residue, and the operator
-  must decide it.
+- **REV-LOOP-11** — The residue is each quorum finding of round three, each
+  `open` entry, and each accepted finding of a round with no fix commit. The
+  pull request body must hold the residue, and the operator must decide it.
 - **REV-LOOP-12** — After the fixer of round `<N>` commits, the main session
   must write `git diff <round commit>...HEAD` to `explore/review/fix-<N>.diff`.
   Round `<N+1>` must read that file as its diff path.
