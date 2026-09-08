@@ -2,8 +2,7 @@
 
 This document specifies the CI building blocks that every FuguBSD repository
 shares. It covers the action policy, the reusable workflows, the web publish
-workflow, the setup-perl cache, the setup-uv cache, and the setup-gitleaks
-action.
+workflow, the setup-perl cache, the setup-uv cache, and the gitleaks gate.
 
 <a id="wfl-actions"></a>
 
@@ -139,15 +138,14 @@ organization.
 
 <a id="wfl-gitleaks"></a>
 
-## The setup-gitleaks action
+## The gitleaks gate
 
-- **WFL-GITLEAKS-1** — The setup-gitleaks action must install a pinned gitleaks
-  release from its tarball, and must verify the sha256 checksum of the download
-  before the install. The test `perl/t/setup-gitleaks.t` must hold the action to
-  this rule.
 - **WFL-GITLEAKS-2** — The check workflow of a repository must run the gitleaks
   gate in a job with a `fetch-depth: 0` checkout. The job runs `make gitleaks`,
   or `make check` per MK-VERBS-3. A shallow checkout hides old commits from the
   scan.
 - **WFL-GITLEAKS-3** — The synced test `t/ci/workflows.t` must enforce
   WFL-GITLEAKS-2 in every consumer with a check workflow.
+- **WFL-GITLEAKS-4** — A repository must install gitleaks from its deps
+  manifest, per MK-GITLEAKS-4. No action must install it. One pin in one
+  manifest serves the operator gate and the CI gate.

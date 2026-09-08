@@ -162,9 +162,8 @@ finding, so a credential stops at the commit gate, before a push.
 - **MK-GITLEAKS-4** — Each deps manifest must provide gitleaks in the `tool`
   environment. A repository must hold one manifest for each operating system
   that it supports. The operator and CI both install gitleaks with `make deps`.
-  A CI job that installs it must put `~/.local/bin` on the path. The
-  setup-gitleaks action holds a second pin of the same version until
-  WFL-GITLEAKS retires it.
+  A CI job that installs it must put `~/.local/bin` on the path. One pin in one
+  manifest therefore serves both gates.
 
 An untracked file stays invisible to the three scans until `git add` stages it,
 and only staged content can reach a commit. A gitignored secret store, for
