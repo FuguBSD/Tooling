@@ -87,15 +87,19 @@ jobs:
       # the signing step below does. A caller names the
       # distribution, and a name in the script text becomes part of
       # a command.
+      #
+      # Every name here carries the DIST_ prefix, because mk/perl.mk
+      # reads DIST and VERSION. WFL-ACTIONS-4 states the rule.
       - name: Build the distribution tarball
         env:
-          DIST: ${{ inputs.dist }}
-          VERSION: ${{ steps.version.outputs.version }}
+          DIST_NAME: ${{ inputs.dist }}
+          DIST_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          make dist VERSION="$VERSION"
+          make dist VERSION="$DIST_VERSION"
           # The stable name serves releases/latest/download/<dist>.tar.gz,
           # the URL that the deps manifests of the consumers name.
-          cp "build/$DIST-$VERSION.tar.gz" "build/$DIST.tar.gz"
+          cp "build/$DIST_NAME-$DIST_VERSION.tar.gz" \
+            "build/$DIST_NAME.tar.gz"
 
       # The signify tier of scripts/deps reads a manifest beside the
       # download, and it keys that manifest on the file name. A
@@ -127,18 +131,18 @@ jobs:
           SLOT: ${{ vars.SIGNIFY_RELEASE_SLOT }}
           KEY_A: ${{ secrets.SIGNIFY_RELEASE_KEY_A }}
           KEY_B: ${{ secrets.SIGNIFY_RELEASE_KEY_B }}
-          DIST: ${{ inputs.dist }}
-          VERSION: ${{ steps.version.outputs.version }}
+          DIST_NAME: ${{ inputs.dist }}
+          DIST_VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -o pipefail
 
           # The name guard runs first. A release with no slot signs
           # nothing, and a name that no manifest can carry is still a
           # name that a later release would sign.
-          case "$DIST" in
+          case "$DIST_NAME" in
             *[[:space:]\(\)]*)
               echo "release: the dist name holds whitespace or a" \
-                "parenthesis: $DIST" >&2
+                "parenthesis: $DIST_NAME" >&2
               exit 1 ;;
           esac
 
@@ -176,7 +180,7 @@ jobs:
           # on its own, so no field of a sha256sum line has to survive
           # a split.
           : > build/SHA256
-          for name in "$DIST-$VERSION.tar.gz" "$DIST.tar.gz"; do
+          for name in "$DIST_NAME-$DIST_VERSION.tar.gz" "$DIST_NAME.tar.gz"; do
             digest=$(sha256sum "build/$name" | sed 's|^\\||' \
               | cut -d' ' -f1)
             case "$digest" in
