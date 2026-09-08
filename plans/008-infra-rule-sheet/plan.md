@@ -3,8 +3,8 @@
 `infra/CLAUDE.md` of the infra pack holds 2,331 words. It enters the context of
 a session on the first touch of a file under `infra/`, at about 3,800 tokens. It
 mixes the rules that an agent needs at edit time with design narrative,
-reference tables, and procedures. This plan cuts the file to a rule sheet under
-1,400 words. The shared design moves to a specification document of this
+reference tables, and procedures. This plan cuts the file to a rule sheet of
+about half its size. The shared design moves to a specification document of this
 repository, and the pack file points at it. A project fact stays in the consumer
 specification and the consumer runbook, as today.
 
@@ -27,7 +27,7 @@ without approval.
 
 | #   | Decision                                                                                                                                                                                      |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | A synced `CLAUDE.md` is a rule sheet: one rule for each bullet, no table above five rows, and no procedure.                                                                                   |
+| 1   | A synced `CLAUDE.md` is a rule sheet: one rule for each bullet, no narrative, and no procedure.                                                                                               |
 | 2   | The shared infrastructure design lives in a specification document of this repository. The pack file points at it with a URL, because a synced file cannot hold a relative link into Tooling. |
 | 3   | A project fact lives in the consumer specification or the consumer runbook, and never in the pack.                                                                                            |
 | 4   | The states table of `spec/STATUS.md` changes: `n-a` covers a unit that no code of this repository can implement.                                                                              |
@@ -106,12 +106,7 @@ list follows the sections of the file:
   on `main` only. The `infra-admin` environment behind a human review, and one
   concurrency group for each stack with `queue: max`.
 
-The intended sheet holds 1,341 words by `wc -w`. The count covers the marker
-comment, the title, the intro with the URL sentence, the fourteen section
-headings, and each part above. The target is 1,400 words, the count rounded up
-to the next hundred. The sheet keeps 58 percent of the 2,331 words of the file
-today.
-
+The sheet then holds about 1,400 words, a little over half of the file today.
 One sentence at the top points at the design document by URL.
 
 ### What moves to the design document
@@ -128,7 +123,7 @@ definition with its heartbeat, and the watchdog cadence. It takes the teardown
 narrative, the task runner list with its consumer note, the CI table, and the
 Audit Trail export. Each part becomes a unit, and the register marks each unit
 `n-a`, because consumer code implements it. The design document repeats no rule
-of the pack file. The two lists cover every rule sentence of the file.
+of the pack file.
 
 ### What the consumers do afterwards
 
@@ -138,12 +133,9 @@ it.
 
 ## Work
 
-- `infra/sync/infra/CLAUDE.md`: the rule sheet, under 1,400 words.
-- `perl/t/infra-sheet.t`: a test that counts the words of
-  `infra/sync/infra/CLAUDE.md`, and fails above the limit of decision 1.
+- `infra/sync/infra/CLAUDE.md`: the rule sheet.
 - `spec/infra.md` and `spec/index.md`: the design document and its row.
-- `spec/DECISIONS.md`: decisions 1, 2, and 3, with the word limit of the infra
-  rule sheet in decision 1.
+- `spec/DECISIONS.md`: decisions 1, 2, and 3.
 - `spec/STATUS.md`: the states table, per decision 4, and the rows, each `n-a`.
 - Delete this plan.
 
