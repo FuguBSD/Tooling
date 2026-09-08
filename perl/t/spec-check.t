@@ -193,6 +193,388 @@ EOF
 	( $exit, $output ) = run_check($root);
 	isnt( $exit, 0, 'a plan that cites a done unit fails' );
 	like( $output, qr/cites a done unit/, 'and is named' );
+	like(
+		$output,
+		qr/cite it under Extends/,
+		'and the message points at Extends'
+	);
+}
+
+# A plan that extends a done unit passes, on its own line and beside
+# an Implements citation in either order. An open unit, an unknown
+# unit, and a rule ID under Extends each fail.
+{
+	my $root = fixture();
+	my $plan = "$root/plans/004-w/plan.md";
+	write_file( $plan, "# 004 \x{2014} W\n\nExtends: FIX-ONE.\n" );
+	my ( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a plan that extends a done unit passes' )
+	    or diag($output);
+
+	write_file( $plan,
+		"# 004 \x{2014} W\n\nImplements: FIX-TWO. Extends: FIX-ONE.\n"
+	);
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'two verbs on one line each scan their own citation' )
+	    or diag($output);
+
+	write_file( $plan,
+"# 004 \x{2014} W\n\n- Implements: FIX-TWO\n- Extends: FIX-ONE\n"
+	);
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'two verbs on separate lines pass' ) or diag($output);
+
+	write_file( $plan,
+		"# 004 \x{2014} W\n\nExtends: FIX-ONE. Implements: FIX-TWO.\n"
+	);
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'the two verbs pass in the other order too' )
+	    or diag($output);
+
+	write_file( $plan,
+		"# 004 \x{2014} W\n\nImplements: FIX-TWO. Defers: FIX-ONE.\n" );
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a Defers segment on an Implements line is exempt' )
+	    or diag($output);
+
+	write_file( $plan,
+"# 004 \x{2014} W\n\nImplements: FIX-TWO. Implements: FIX-ONE.\n"
+	);
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a second Implements segment on one line still scans' );
+	like( $output, qr/cites a done unit/, 'and is named' );
+
+	write_file( $plan,
+		"# 004 \x{2014} W\n\n- Implements: FIX-TWO and\n  FIX-ONE\n" );
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a wrapped Implements list scans its continuation' );
+	like( $output, qr/cites a done unit/, 'and is named' );
+
+	write_file( $plan,
+		"# 004 \x{2014} W\n\n- Extends: FIX-ONE and\n  FIX-TWO\n" );
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a wrapped Extends list scans its continuation' );
+	like( $output, qr/Extends cites a unit that is not done/,
+		'and is named' );
+
+	write_file( $plan, "# 004 \x{2014} W\n\nExtends: FIX-TWO.\n" );
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a plan that extends an open unit fails' );
+	like( $output, qr/Extends cites a unit that is not done/,
+		'and is named' );
+
+	write_file( $plan, "# 004 \x{2014} W\n\nExtends: FIX-NINE.\n" );
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a plan that extends an unknown unit fails' );
+	like( $output, qr/Extends cites an unknown unit/, 'and is named' );
+
+	write_file( $plan, "# 004 \x{2014} W\n\nExtends: FIX-ONE-1.\n" );
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a rule ID under Extends fails' );
+	like( $output, qr/Extends must cite a unit, not a rule/,
+		'and is named' );
+}
+
+# A partial unit under Extends fails.
+{
+	my $root = fixture(
+		'spec/STATUS.md' => <<"EOF",
+# Register
+
+## Units
+
+| Unit | State | Done by | Note |
+| --- | --- | --- | --- |
+| [FIX-ONE](fixture.md#fix-one) | done | \x{2014} | [code](../lib/code.pm) |
+| [FIX-TWO](fixture.md#fix-two) | partial | \x{2014} | Absent: the prose. |
+
+## Code roots
+
+| Document | Roots |
+| --- | --- |
+| fixture.md | `lib` |
+
+## Retired IDs
+
+| ID |
+| --- |
+EOF
+	);
+	write_file( "$root/plans/005-v/plan.md",
+		"# 005 \x{2014} V\n\nExtends: FIX-TWO.\n" );
+	my ( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a plan that extends a partial unit fails' );
+	like( $output, qr/Extends cites a unit that is not done/,
+		'and is named' );
+}
+
+# The scan joins a wrapped paragraph, and it ends a citation at the
+# first sentence end. A nested sub-item and a prose continuation stay
+# out of the citation, and a without clause under Extends fails.
+{
+	my $root = fixture();
+	my $plan = "$root/plans/006-u/plan.md";
+	write_file( $plan,
+		"# 006 \x{2014} U\n\nImplements: FIX-TWO and\nFIX-ONE.\n" );
+	my ( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a wrapped paragraph citation scans its second line' );
+	like( $output, qr/cites a done unit/, 'and is named' );
+
+	write_file( $plan,
+"# 006 \x{2014} U\n\n- Implements: FIX-TWO\n  - FIX-ONE stays as it is\n"
+	);
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a nested sub-item stays out of the citation' )
+	    or diag($output);
+
+	write_file( $plan,
+"# 006 \x{2014} U\n\n- Implements: FIX-TWO.\n  The old FIX-ONE rules guide this.\n"
+	);
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'prose after the sentence end stays out of the citation' )
+	    or diag($output);
+
+	write_file( $plan,
+		"# 006 \x{2014} U\n\nExtends: FIX-ONE without FIX-ONE-1.\n" );
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0,
+		'a rule ID inside a without clause fails as a rule ID' );
+	like( $output, qr/Extends must cite a unit, not a rule/,
+		'and is named' );
+}
+
+# A citation starts a paragraph or a list item, and a prose sentence
+# that names a verb is not one. A blank line and a heading each end a
+# citation. Then a without clause with a unit, an empty citation, a
+# second verb with no sentence end, and a period before a unit ID.
+{
+	my $root = fixture();
+	my $plan = "$root/plans/007-t/plan.md";
+	write_file( $plan,
+"# 007 \x{2014} T\n\nThe plan cites no unit under Implements:, because FIX-ONE stays done.\n"
+	);
+	my ( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a prose sentence that names a verb is not a citation' )
+	    or diag($output);
+
+	write_file( $plan,
+"# 007 \x{2014} T\n\nThis plan cites nothing under Extends:, because\nFIX-TWO stays open.\n"
+	);
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a wrapped prose sentence is not a citation either' )
+	    or diag($output);
+
+	write_file( $plan,
+"# 007 \x{2014} T\n\nImplements: FIX-TWO\n\nFIX-ONE guides this.\n"
+	);
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a blank line ends a citation' ) or diag($output);
+
+	write_file( $plan,
+		"# 007 \x{2014} T\n\nImplements: FIX-TWO\n## FIX-ONE\n" );
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a heading ends a citation' ) or diag($output);
+
+	write_file( $plan,
+		"# 007 \x{2014} T\n\nExtends: FIX-ONE without FIX-ONE.\n" );
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a without clause with a unit under Extends fails' );
+	like( $output, qr/Extends takes no without clause/, 'and is named' );
+
+	write_file( $plan, "# 007 \x{2014} T\n\nExtends:\n\n- FIX-TWO\n" );
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'an empty Extends citation fails' );
+	like( $output, qr/Extends holds no citation text/, 'and is named' );
+
+	write_file( $plan,
+		"# 007 \x{2014} T\n\nImplements: FIX-TWO and Extends: FIX-ONE\n"
+	);
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a second verb with no sentence end fails as a fold' );
+	like( $output, qr/runs into another verb/, 'and the fold is named' );
+	unlike( $output, qr/holds no citation text/, 'and no bare verb error' );
+
+	write_file( $plan,
+"# 007 \x{2014} T\n\nImplements: FIX-TWO. FIX-ONE guides this.\n"
+	);
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a period before a unit ID ends the citation' )
+	    or diag($output);
+}
+
+# A bold verb is a verb, and a bare verb is an error. A citation with no
+# unit passes. A wrapped prose sentence that puts a verb at a line start
+# is prose, and a list item after prose is a citation.
+{
+	my $root = fixture();
+	my $plan = "$root/plans/008-s/plan.md";
+	write_file( $plan, "# 008 \x{2014} S\n\n**Implements:** FIX-ONE\n" );
+	my ( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a bold verb is a verb' );
+	like( $output, qr/cites a done unit/, 'and is named' );
+
+	write_file( $plan, "# 008 \x{2014} S\n\nImplements:\n" );
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a bare verb fails' );
+	like( $output, qr/Implements holds no citation text/, 'and is named' );
+
+	write_file( $plan, "# 008 \x{2014} S\n\nImplements: none.\n" );
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a citation with no unit passes' ) or diag($output);
+
+	write_file( $plan,
+"# 008 \x{2014} S\n\nFIX-ONE is done, so this plan cites it nowhere under\nImplements:, per the plans rule.\n"
+	);
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a verb at the start of a wrapped prose line is prose' )
+	    or diag($output);
+
+	write_file( $plan,
+"# 008 \x{2014} S\n\nSome prose names Implements: here.\n- Implements: FIX-ONE\n"
+	);
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a list item after prose is a citation' );
+	like( $output, qr/cites a done unit/, 'and is named' );
+
+	write_file( $plan,
+"# 008 \x{2014} S\n\nImplements: FIX-TWO. The plan cites nothing under Implements:, because FIX-ONE stays done.\n"
+	);
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a mid-sentence verb after a citation is prose' )
+	    or diag($output);
+}
+
+# A prose mention of another verb after a citation raises no error. A
+# bare Defers fails. The underscore and the italic marks around a verb
+# come off, and a second citation in a wrapped paragraph starts a
+# sentence.
+{
+	my $root = fixture();
+	my $plan = "$root/plans/009-r/plan.md";
+	write_file( $plan,
+"# 009 \x{2014} R\n\nImplements: FIX-TWO. The plan cites nothing under Extends:, because FIX-ONE stays done.\n"
+	);
+	my ( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a prose mention of another verb raises no error' )
+	    or diag($output);
+
+	write_file( $plan, "# 009 \x{2014} R\n\nDefers:\n" );
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a bare Defers fails' );
+	like( $output, qr/Defers holds no citation text/, 'and is named' );
+
+	write_file( $plan, "# 009 \x{2014} R\n\n__Implements:__ FIX-ONE\n" );
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'an underscore bold verb is a verb' );
+	like( $output, qr/cites a done unit/, 'and is named' );
+
+	write_file( $plan, "# 009 \x{2014} R\n\n*Implements:* FIX-ONE\n" );
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'an italic verb is a verb' );
+	like( $output, qr/cites a done unit/, 'and is named' );
+
+	write_file( $plan,
+		"# 009 \x{2014} R\n\nImplements: FIX-TWO.\nExtends: FIX-ONE.\n"
+	);
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0,
+		'a second citation in a wrapped paragraph starts a sentence' )
+	    or diag($output);
+}
+
+# The marks around a verb come off in every form, a numbered list item
+# is a citation, an n-a unit is not done, a without clause passes on an
+# open unit with a rule, a sibling token is exempt, and the first
+# period ends a citation with no space after it.
+{
+	my $root = fixture(
+		'spec/fixture.md' => <<'EOF',
+# The fixture
+
+<a id="fix-one"></a>
+
+## Unit one
+
+- **FIX-ONE-1** — The fixture must exist.
+
+<a id="fix-two"></a>
+
+## Unit two
+
+- **FIX-TWO-1** — The fixture can grow.
+EOF
+	);
+	my $plan = "$root/plans/010-q/plan.md";
+	for my $form (
+		'**Implements**: FIX-ONE',
+		'`Implements:` FIX-ONE',
+		'1. Implements: FIX-ONE'
+	    )
+	{
+		write_file( $plan, "# 010 \x{2014} Q\n\n$form\n" );
+		my ( $exit, $output ) = run_check($root);
+		isnt( $exit, 0, "the form '$form' is a citation" );
+		like( $output, qr/cites a done unit/, 'and is named' );
+	}
+
+	write_file( $plan,
+		"# 010 \x{2014} Q\n\nImplements: FIX-TWO without FIX-TWO-1.\n"
+	);
+	my ( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a without clause on an open unit passes' )
+	    or diag($output);
+
+	write_file( $plan, "# 010 \x{2014} Q\n\nExtends: FuguVM FIX-NINE.\n" );
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a sibling token under Extends is exempt' )
+	    or diag($output);
+
+	write_file( $plan,
+		"# 010 \x{2014} Q\n\nImplements: FIX-TWO.FIX-ONE\n" );
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0,
+		'the first period ends a citation with no space after it' )
+	    or diag($output);
+
+	write_file( $plan,
+		"# 010 \x{2014} Q\n\nExtends: FIX-ONE Implements: FIX-TWO\n" );
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a citation that runs into another verb fails' );
+	like( $output, qr/Extends citation runs into another verb/,
+		'and is named' );
+}
+
+# An n-a unit under Extends is not done.
+{
+	my $root = fixture(
+		'spec/STATUS.md' => <<"EOF",
+# Register
+
+## Units
+
+| Unit | State | Done by | Note |
+| --- | --- | --- | --- |
+| [FIX-ONE](fixture.md#fix-one) | done | \x{2014} | [code](../lib/code.pm) |
+| [FIX-TWO](fixture.md#fix-two) | n-a | \x{2014} | Citation only. |
+
+## Code roots
+
+| Document | Roots |
+| --- | --- |
+| fixture.md | `lib` |
+
+## Retired IDs
+
+| ID |
+| --- |
+EOF
+	);
+	write_file( "$root/plans/011-p/plan.md",
+		"# 011 \x{2014} P\n\nExtends: FIX-TWO.\n" );
+	my ( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'an n-a unit under Extends fails' );
+	like( $output, qr/Extends cites a unit that is not done/,
+		'and is named' );
 }
 
 # An unresolved citation fails.
