@@ -21,8 +21,8 @@ contract, the ID conventions, and the document tables.
   `Defers: WFL-CACHE`.
 - A plan must cite each `done` unit that it extends, for example
   `Extends: SYNC-CHECK`.
-- The change that implements a unit, or a part of a unit, must set the state of
-  the unit in [STATUS.md](STATUS.md) in the same change.
+- The change that implements a unit, or a part of one, must set the unit state
+  in [STATUS.md](STATUS.md) in the same change.
 
 <a id="conventions"></a>
 

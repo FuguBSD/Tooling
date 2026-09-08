@@ -68,12 +68,12 @@ Send this prompt to each reviewer, with the four values in place:
 > Review the change of the repository at `<repository path>`. The diff is at
 > `<diff path>`, and this is round `<N>` of three. Read the diff file, each file
 > that the diff names, and the `CLAUDE.md` of each changed directory. Do not
-> derive the diff, and do not run a gate. Report each defect: a correctness
-> error, a specification conflict, an absent test, an absent specification
-> update, or a rule violation. Do not report a defect that `make check` catches,
-> and do not report a style preference. Report at most ten findings, one line
-> for each: `FILE:LINE — DEFECT [blocker|minor]`. Report "no findings" when the
-> change holds none. The ledger is at `<ledger path>`.
+> derive the diff, and do not run a gate. Report each defect. A defect is a
+> correctness error, a specification conflict, an absent test, an absent
+> specification update, or a rule violation. Do not report a defect that
+> `make check` catches, and do not report a style preference. Report at most ten
+> findings, one line for each: `FILE:LINE — DEFECT [blocker|minor]`. Report "no
+> findings" when the change holds none. The ledger is at `<ledger path>`.
 
 Add these two sentences in round two and round three:
 

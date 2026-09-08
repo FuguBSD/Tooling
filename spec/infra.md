@@ -1,8 +1,8 @@
 # The shared infrastructure design
 
 The FuguBSD projects run their compute on one Scaleway Organization, with one
-Scaleway Project for each project. This document specifies the shared design:
-the layout, the state store, the credentials, the spend guardrails, the
+Scaleway Project for each project. This document specifies the shared design. It
+covers the layout, the state store, the credentials, the spend guardrails, the
 teardown, the task runner, and the CI shape.
 
 No code of this repository implements a unit of this document. The `infra` pack

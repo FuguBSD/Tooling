@@ -29,10 +29,10 @@ packs, each file at the same relative path.
   `web/footer.body.html` of the consumer.
 - **SYNC-PACKS-8** — The `python` pack must live at `python/sync/` and must
   serve the consumers with Python code. It holds the shared Ruff configuration
-  `ruff.toml`, the make fragment `mk/python.mk`, the Python style rules, at
-  `packages/CLAUDE.md` of the consumer, and the consumer test `t/ci/python.t`.
-  The consumer keeps `pyproject.toml`, `.python-version`, and `uv.lock`, per
-  SYNC-IDENTITY.
+  `ruff.toml` and the make fragment `mk/python.mk`. It also holds the Python
+  style rules, at `packages/CLAUDE.md` of the consumer, and the consumer test
+  `t/ci/python.t`. The consumer keeps `pyproject.toml`, `.python-version`, and
+  `uv.lock`, per SYNC-IDENTITY.
 
 <a id="sync-identity"></a>
 
@@ -75,8 +75,9 @@ packs, each file at the same relative path.
   equal the canon byte for byte. `scripts/` and `t/` have no root copies: the
   scripts run in place, and the tests serve the consumers.
 - **SYNC-CHECK-4** — The root of this repository must hold a copy of the
-  dispatcher, of each included pack fragment, and of each pack configuration
-  that the root gates read. Each copy must equal the canon byte for byte.
+  dispatcher and of each included pack fragment. It must also hold a copy of
+  each pack configuration that the root gates read. Each copy must equal the
+  canon byte for byte.
 
 <a id="sync-bootstrap"></a>
 
@@ -151,7 +152,7 @@ so the manifest keys on the file name.
 - **SYNC-DOWNLOAD-20** — The cpanm bootstrap must download the standalone
   `cpanm` script and run it with the current perl. It must not install
   `App::cpanminus`. `cpanm` with no root and no `local::lib` writes to the local
-  library of the user, and `PATH` does not hold the `cpanm` it lands there.
+  library of the user. `PATH` does not hold the `cpanm` it lands there.
 - **SYNC-DOWNLOAD-8** — The script must run `signify(1)` as a command, and it
   must accept the name `signify-openbsd`. It must not load `Fugu::Signify`,
   because a `dist` entry installs that module.

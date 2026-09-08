@@ -37,10 +37,11 @@ every consumer.
 - **REV-LOOP-8** — The main session must dispatch. After the first launch of a
   round it must edit no repository file. A file under `explore/` is scratch
   space, and not a repository file.
-- **REV-LOOP-9** — Each ledger line must hold the finding number, the round, the
-  file and the line, the severity, each member that reported it, and the
-  disposition. A severity is `blocker` or `minor`. A disposition is `open`,
-  `accepted`, `fixed`, `rejected: <reason>`, `dropped`, or `recorded`.
+- **REV-LOOP-9** — Each ledger line must hold the finding number, the round, and
+  the file and the line. It must also hold the severity, each member that
+  reported it, and the disposition. A severity is `blocker` or `minor`. A
+  disposition is `open`, `accepted`, `fixed`, `rejected: <reason>`, `dropped`,
+  or `recorded`.
 - **REV-LOOP-10** — A minor finding must take the disposition `recorded`, and no
   round must fix it. A rejection must cite the code, the specification, or a
   decision.

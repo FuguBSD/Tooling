@@ -68,5 +68,5 @@ One row per unit: a state, a "Done by" phase, and a note.
 
 `make spec-check` validates the links, the anchors, the register, the rules, the
 citations, the schedule lint, and the plans. On a pull request, CI adds a drift
-gate: a change to a document with a `partial` or `done` unit must also change
+gate. A change to a document with a `partial` or `done` unit must also change
 STATUS.md or a mapped code root.
