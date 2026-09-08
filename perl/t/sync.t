@@ -172,6 +172,21 @@ my $dir = consumer();
 	is( $exit, 0, 'a fresh infra sync passes --check' ) or diag($output);
 }
 
+# The infra rule sheet points at the shared design document, per D-13. A
+# synced file cannot hold a relative link into this repository, so the
+# pointer is a URL, and no link gate reaches it.
+{
+	my $sheet = "$root/infra/sync/infra/CLAUDE.md";
+	my $url = 'https://github.com/FuguBSD/Tooling/blob/main/spec/infra.md';
+	open my $fh, '<:encoding(UTF-8)', $sheet or die "read $sheet: $!";
+	local $/ = undef;
+	my $text = <$fh>;
+	close $fh;
+
+	like( $text, qr/\Q$url\E/, 'the infra sheet points at the design' );
+	ok( -f "$root/spec/infra.md", 'the design document exists' );
+}
+
 # A consumer that adds the web pack gets the website instructions and
 # the shared footer on top of the org pack.
 {
