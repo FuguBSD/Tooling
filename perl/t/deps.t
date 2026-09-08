@@ -521,4 +521,56 @@ for my $os (qw(OpenBSD Linux Darwin)) {
 	}
 }
 
+# The cpanm bootstrap must leave a runnable cpanm.
+#
+# cpanm with no root and no local::lib writes to the local library of
+# the user, and the cpanm it lands there is not on PATH. An install of
+# App::cpanminus therefore answered nothing: the run died at the next
+# command with "Can't exec cpanm". The bootstrap downloads the
+# standalone script and runs it with this perl.
+{
+	delete local $ENV{PERL_LOCAL_LIB_ROOT};
+
+	# A PATH with no cpanm on it. The directory holds one link to
+	# this perl, because the shebang of the script resolves perl
+	# through PATH. Nothing else is there, so the script finds no
+	# cpanm and takes the bootstrap.
+	my $bin = tempdir( CLEANUP => 1 );
+	symlink $^X, "$bin/perl" or die "symlink perl: $!";
+	local $ENV{PATH} = $bin;
+
+	my $manifest = "runtime dist https://example.org/dl/Fugu.tar.gz\n";
+	my ( $exit, $output ) = run_in(
+		fixture(
+			'OpenBSD', $manifest,
+			sums('https://example.org/dl/Fugu.tar.gz')
+		),
+		'--os OpenBSD --dry-run runtime'
+	);
+	is( $exit, 0, 'a dist line parses with no cpanm on PATH' );
+	like( $output, qr/Installing cpanminus/, 'the bootstrap runs' );
+
+	# The download of the standalone script, and no install of
+	# App::cpanminus after it.
+	like(
+		$output,
+		qr{^\+ \S+/ftp \S+/cpanm https://cpanmin\.us$}m,
+		'it downloads the standalone script'
+	);
+	unlike( $output, qr/App::cpanminus/,
+		'and it installs no App::cpanminus' );
+
+	# The install runs the downloaded script, never the bare name.
+	unlike(
+		$output,
+		qr/^\+ cpanm /m,
+		'no install runs a cpanm that PATH does not hold'
+	);
+	like(
+		$output,
+		qr{^\+ \S*perl\S* \S+/cpanm --notest \S+/Fugu\.tar\.gz$}m,
+		'the install runs the downloaded script with this perl'
+	);
+}
+
 done_testing();

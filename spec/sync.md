@@ -148,6 +148,10 @@ so the manifest keys on the file name.
   stop the install. The cpanm bootstrap is the one exception, because no
   manifest names it. A repository avoids it with a cpanminus package in its
   `tool` environment.
+- **SYNC-DOWNLOAD-20** — The cpanm bootstrap must download the standalone
+  `cpanm` script and run it with the current perl. It must not install
+  `App::cpanminus`. `cpanm` with no root and no `local::lib` writes to the local
+  library of the user, and `PATH` does not hold the `cpanm` it lands there.
 - **SYNC-DOWNLOAD-8** — The script must run `signify(1)` as a command, and it
   must accept the name `signify-openbsd`. It must not load `Fugu::Signify`,
   because a `dist` entry installs that module.
