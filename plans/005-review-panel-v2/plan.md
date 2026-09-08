@@ -101,60 +101,53 @@ kept its main context at 255k over six hours.
 
 `explore/review/ledger.md` holds one line for each finding. Each line holds the
 finding number, the round, the file and line, the severity, the members that
-reported it, and the disposition. A disposition is `open`, `accepted`,
-`fixed <hash>`, `rejected: <reason>`, `dropped`, or `recorded`. A rejection
-cites the code, the specification, or a decision. An `accepted` entry is a
-quorum finding that waits for the fixer. An `open` entry is a blocker that one
-member reported. The next round confirms it or drops it. A confirmed entry
-becomes `accepted` when two members confirm it. A dropped entry gets the
-disposition `dropped`. An `open` entry after the last round joins the residue.
-The `explore/` directory is gitignored in every consumer.
+reported it, and the disposition. A disposition is `open`, `accepted`, `fixed`,
+`rejected: <reason>`, `dropped`, or `recorded`. A rejection cites the code, the
+specification, or a decision. An `accepted` entry is a quorum finding that waits
+for the fixer. An `open` entry is a blocker that one member reported. The next
+round confirms it or drops it. When two members confirm it, it becomes
+`accepted`. An `open` entry after the last round joins the residue. The
+`explore/` directory is gitignored in every consumer.
 
 ### The round
 
 1. The main session runs `make check </dev/null`. It commits every change. It
-   writes `git diff <base>...HEAD` to `explore/review/round-<N>.diff`, and the
-   changed-file list beside it.
-2. It launches three `reviewer` agents in the foreground, with one fixed prompt
-   from the skill. The prompt holds the repository path, the diff path, the
-   ledger path, and the round number. It writes no other prompt text.
+   writes `git diff <base>...HEAD` to `explore/review/round-<N>.diff`.
+2. It launches three `reviewer` agents with one fixed prompt from the skill. The
+   prompt holds the repository path, the diff path, the ledger path, and the
+   round number.
 3. It merges the reports into the ledger. A blocker that two members report is a
    quorum finding with the disposition `accepted`. A blocker that one member
    reports stays `open`. A minor finding gets the disposition `recorded`.
 4. In rounds one and two, it launches one `fixer` agent when the round has a
    quorum finding. Without one, the skill stops per step 6. The fixer gets the
-   repository path, the diff path, and the ledger path. The main session edits
-   no repository file itself.
+   repository path, the diff path, and the ledger path.
 5. Round two and round three review the fix diff,
    `git diff <round commit>...HEAD`. They also review the files that the fixer
-   report cites. A reviewer confirms each `fixed` entry by its hash, and reports
-   a new defect in that scope only. The reviewers also get each `open` entry. A
-   reviewer confirms it or drops it.
+   report cites. A reviewer confirms each `fixed` entry against the fix diff,
+   and reports a new defect in that scope only. The reviewers also get each
+   `open` entry. A reviewer confirms it or drops it.
 6. The skill stops after a round with no quorum finding, or after round three.
    Round three has no fixer. The residue is the quorum findings of round three
    plus each `open` entry. The pull request body gets the round table. The table
-   holds the round, the finding count, the quorum count, the fixer commit, and
-   the residue.
+   holds the round, the finding count, the quorum count, and the residue.
 
 ### The reviewer
 
 The agent file `reviewer.md` has no edit tool: `disallowedTools` names `Edit`,
 `Write` and `NotebookEdit`. It keeps Bash for `git show`, `git diff` and `grep`,
-and the prompt forbids a write. It sets effort `high` and `maxTurns` at 40. The
-turn cap comes from the measured distribution, and it can fall after the
-diff-bound prompt proves shorter. The prompt tells the reviewer to read the diff
-file and the files it names, and the rule files of the changed paths. It does
-not run the gates and it does not derive the diff. It reports each defect as
+and the prompt forbids a write. It sets effort `high`. The prompt tells the
+reviewer to read the diff file and the files it names, and the rule files of the
+changed paths. It does not run the gates, and it does not derive the diff. It
+does not report a defect that `make check` catches. It reports each defect as
 `FILE:LINE — DEFECT [blocker|minor]`, at most ten, or "no findings".
 
 ### The fixer
 
 The agent file `fixer.md` sets the full tool set, effort `xhigh`, and
-`permissionMode: acceptEdits`. With that mode, the Bash steer of auto mode does
-not apply to it. Its rules are:
+`permissionMode: acceptEdits`, so an edit runs without a prompt. Its rules are:
 
-- Change the line that the finding names.
-- Do not rewrite the file.
+- Make the smallest change that resolves the finding.
 - Name the directory in every command.
 - Run `make check </dev/null` before the report.
 - Commit with the round number.
@@ -165,16 +158,16 @@ touched.
 ### The implementer
 
 The agent file `implementer.md` has the shape of the fixer. It receives a plan
-section, a file list, and the acceptance test. It commits, and it reports the
-files it touched and the test result. The main session holds the plan and
-dispatches one implementer for each work package.
+section and its acceptance test. It commits, and it reports the files it touched
+and the test result. The main session holds the plan and dispatches one
+implementer for each work package.
 
 ### The merge skills
 
 `pull-it` gains a size gate before the panel: one plan or one feature for each
-change set. A diff above about 600 lines splits first. It dispatches a `fixer`
-for a CI failure. It ends with a stop line after the merge: start a new session
-for the next change. `merge-it` does not change.
+change set. It dispatches a `fixer` for a CI failure. It ends with a stop line
+after the merge: start a new session for the next change. `merge-it` does not
+change.
 
 ### The pull request template
 
@@ -216,20 +209,16 @@ repository, and each consumer takes it through sync afterwards.
 
 ### What waits
 
-The two hooks wait for a measured pilot. One is a lint hook on each edit of a
-Markdown file, scoped to the fixer. The other is a gate hook at the stop of the
-fixer. The lint hook needs a single-file mode of `ste-lint`, which plan 006
-adds. The lint hook must match the Bash tool as well as `Edit` and `Write`.
+Two fixer hooks wait for a measured pilot: a lint hook on each Markdown edit,
+and a gate hook at the stop. The lint hook needs the single-file mode of
+`ste-lint` that plan 006 adds.
 
 The workspace session rules wait for the workspace plan. A synced file cannot
 hold a workspace-only rule.
 
 ### Open questions
 
-1. The fixer sets `permissionMode: acceptEdits`. A probe must confirm that the
-   setting removes the Bash steer of auto mode for that agent. It must also
-   confirm that the edits still run without a prompt.
-2. `maxTurns` counts agentic turns. The value 40 assumes that unit. A probe
-   confirms it before the reviewer file lands.
-3. A probe must confirm that the `effort` field of an agent file overrides the
+1. A probe must confirm that `permissionMode: acceptEdits` lets the fixer edit
+   without a prompt under auto mode.
+2. A probe must confirm that the `effort` field of an agent file overrides the
    session effort. The probe runs in the current Claude Code version.

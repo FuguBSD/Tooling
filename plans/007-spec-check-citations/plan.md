@@ -13,11 +13,10 @@ org pack owns the script, so this repository lands the change first.
 Implements: none. The design units do not exist yet.
 
 This change adds one document to the specification for `spec-check`. The
-document holds one unit for each rule group of the script header. The groups are
-the links, the documents, the register, the citations, the schedule, the plans,
-and the drift gate. The plan unit holds the new check. The change sets each
-register row in the same change. This plan names no new rule number, because a
-number exists only after the rule lands.
+document groups the rules of the script header into units. The unit of the plan
+rules holds the new check. The change sets each register row in the same change.
+This plan names no new rule number, because a number exists only after the rule
+lands.
 
 ## Decisions
 
@@ -73,15 +72,17 @@ it reads the plan text only.
 
 ### The document
 
-`spec/spec-check.md` groups the twelve rules of the script header into units,
-one for each rule group. The document holds the rule text of the script. The
-header keeps the rule numbers and a pointer to the document. The synced
-`plans/CLAUDE.md` and `spec/CLAUDE.md` each keep one sentence on the script.
-That sentence names the consumer duty and points at the document by its name.
-For the citation forms, the document points at the synced `spec/CLAUDE.md` and
-repeats nothing. The plan unit holds rule 10, rule 12, and the contradiction
-check. `spec/index.md` gains the row. The register lists every unit as `done`,
-because the implementation lands the document and the check together.
+`spec/spec-check.md` groups the twelve rules of the script header into units.
+The document holds the rule text of the script. Where the header text and the
+code disagree, the code is the fact, and the document follows the code. The
+implementation records each such case in its pull request. The header keeps the
+rule numbers and a pointer to the document. The synced `plans/CLAUDE.md` and
+`spec/CLAUDE.md` each keep one sentence on the script. That sentence names the
+consumer duty and points at the document by its name. For the citation forms,
+the document points at the synced `spec/CLAUDE.md` and repeats nothing. The unit
+of the plan rules holds rule 10, rule 12, and the contradiction check.
+`spec/index.md` gains the row. The register lists every unit as `done`, because
+the implementation lands the document and the check together.
 
 ### The tests
 
@@ -97,12 +98,9 @@ plan with disjoint sets passes.
   the rule numbers and a pointer to the document.
 - `perl/t/spec-check.t`: the fixtures.
 - `spec/spec-check.md` and `spec/index.md`: the new document and its row.
-- `org/sync/spec/CLAUDE.md`: the citation forms state that a unit sits under one
-  verb only.
-- `org/sync/plans/CLAUDE.md`: a pointer to that form.
-- `org/sync/plans/CLAUDE.md` and `org/sync/spec/CLAUDE.md`: trim the rule 10
-  sentence, and the rule 11 sentence of the Checks paragraph. Each sentence
-  names the consumer duty and points at the document by its name.
+- `org/sync/spec/CLAUDE.md` and `org/sync/plans/CLAUDE.md`: the citation forms
+  state that a unit sits under one verb only. Each sentence on the script names
+  the consumer duty and points at the document by its name.
 - `spec/CLAUDE.md` and `plans/CLAUDE.md`: the root copies of both, by hand.
 - `spec/STATUS.md`: the rows, and a Code roots row for `spec-check.md` with
   `org/sync/scripts/spec-check` and `perl/t/spec-check.t`.
@@ -119,9 +117,3 @@ Each consumer takes the script through sync afterwards.
 ### What waits
 
 Nothing waits.
-
-### Open questions
-
-1. The document states rules that the script enforces today. Where the header
-   text and the code disagree, the code is the fact, and the document follows
-   the code. The implementation records each such case in its pull request.

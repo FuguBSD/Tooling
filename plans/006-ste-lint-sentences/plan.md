@@ -94,7 +94,7 @@ whitespace or the block end. The scanner replaces each inline code span with one
 placeholder word before the split. A period inside a span then does not end a
 sentence, and a span counts as one word. It drops a link target and keeps the
 link text. A word is one whitespace-separated token that holds a letter or a
-digit. A bold unit ID counts as one word, and a dash counts as none.
+digit, so a dash counts as none.
 
 ### The two limits
 
@@ -144,11 +144,8 @@ path is absolute or relative to the working directory. A hook calls
 
 ### The rollout
 
-The new rules find sentences in every consumer today. Before the sync, the
-operator runs the new script against each consumer root with `--root` and
-records the count. Each consumer then takes the synced script and its prose
-repairs in one change. A cold fixer agent for each consumer makes the repairs,
-as the prose repair of 2026-08-26 did across five repositories. The workspace
+The new rules find sentences in every consumer today. Each consumer takes the
+synced script and its prose repairs in one change, per decision 4. The workspace
 holds the rollout record.
 
 ## Work
@@ -161,13 +158,8 @@ holds the rollout record.
 - `spec/STATUS.md`: the rows.
 - `org/sync/CLAUDE.md`: the writing-standard line names the sentence rules
   beside the banned words and patterns.
-- `org/sync/.claude/skills/review-panel/SKILL.md`: the review prompt states that
-  the lint checks the sentence rules, and asks for no sentence-length finding.
-  Plan 005 rewrites the same file, and the two changes compose at the later
-  merge.
-- The root copies of `CLAUDE.md` and of the review-panel skill land by hand,
-  because `scripts/sync` refuses to run inside Tooling. `perl/t/org.t` holds
-  each root copy to the canon.
+- The root copy of `CLAUDE.md` lands by hand, because `scripts/sync` refuses to
+  run inside Tooling. `perl/t/org.t` holds each root copy to the canon.
 - Delete this plan.
 
 ## Status
@@ -179,20 +171,15 @@ prose of Tooling passes the new rules before the change merges.
 
 ### What waits
 
-This plan builds on the merged pull request 26. `main` holds it at 9417a55, so
-no wait remains.
+The consumer repairs wait for the sync of each consumer.
 
-The consumer repairs wait for the sync of each consumer. Each consumer lands the
-script and its repairs in one change, per decision 4.
-
-The lint hook of the review panel waits for plan 005 and for a measured pilot.
-This plan supplies its `--file` mode.
+Plan 005 tells the reviewer to skip a defect that `make check` catches. The
+panel then stops its sentence-length findings. The lint hook of the review panel
+waits for plan 005 and for a measured pilot. This plan supplies its `--file`
+mode.
 
 ### Open questions
 
 1. The imperative table decides which sentence gets the 20-word limit. The first
    table comes from the verbs in the rule files of this repository. A verb that
    the table misses gets the 25-word limit, so a miss is safe.
-2. A bold unit ID and a dash count as one word and none. The operator confirms
-   this count before the repairs start, because it moves the limit for every
-   rule sentence.
