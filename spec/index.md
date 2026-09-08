@@ -36,13 +36,14 @@ shape, the append-only numbers, the retire procedure, and the citation forms.
 Each document specifies one area of work. The code of a document prefixes the
 IDs of its units.
 
-| Code | Document                     | Area                               |
-| ---- | ---------------------------- | ---------------------------------- |
-| SYNC | [sync.md](sync.md)           | The sync mechanism and the packs   |
-| MK   | [make.md](make.md)           | The make interface and dispatchers |
-| WFL  | [workflows.md](workflows.md) | Actions and reusable workflows     |
-| STE  | [ste-lint.md](ste-lint.md)   | The prose lint                     |
-| REV  | [review.md](review.md)       | The review panel and the merges    |
+| Code  | Document                     | Area                               |
+| ----- | ---------------------------- | ---------------------------------- |
+| SYNC  | [sync.md](sync.md)           | The sync mechanism and the packs   |
+| MK    | [make.md](make.md)           | The make interface and dispatchers |
+| WFL   | [workflows.md](workflows.md) | Actions and reusable workflows     |
+| STE   | [ste-lint.md](ste-lint.md)   | The prose lint                     |
+| REV   | [review.md](review.md)       | The review panel and the merges    |
+| INFRA | [infra.md](infra.md)         | The shared infrastructure design   |
 
 ## Governance documents
 
