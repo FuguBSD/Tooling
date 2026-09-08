@@ -16,6 +16,31 @@ action.
 - **WFL-ACTIONS-3** — A workflow step must run `make deps` with no argument. A
   word after it names a second target, and `make` stops. The synced test must
   refuse such a step, because the fault reaches the runner alone.
+- **WFL-ACTIONS-4** — A workflow and an action must not export a name that a
+  make fragment leaves open to the environment. `make` imports the environment.
+  A fragment that assigns a name with `?=` keeps the imported value, and one
+  that assigns it with `+=` appends to it. A fragment that reads a name and
+  assigns it at no point takes the whole value from the environment. `make`
+  holds `MAKEFLAGS`, `GNUMAKEFLAGS`, `MAKEFILES` and `MAKELEVEL` itself. Each
+  such name is open. A plain `=` replaces the imported value, and that name is
+  free. MK-SUBSET-1 gives a fragment `=`, `?=` and `+=` alone.
+- **WFL-ACTIONS-5** — A name that one fragment leaves open must stay open, also
+  when another fragment controls it. A consumer holds its own `mk/local.mk`, and
+  a shared workflow runs in the tree of the consumer.
+- **WFL-ACTIONS-6** — The ban of WFL-ACTIONS-4 must hold for every step. A step
+  that runs no `make` today can run one tomorrow, and an export at job level
+  reaches every step of the job. An `env:` block exports a name, and a write to
+  `$GITHUB_ENV` exports one too.
+- **WFL-ACTIONS-7** — The test `perl/t/workflow-env.t` must enforce
+  WFL-ACTIONS-4 over the workflows and the actions of this repository.
+- **WFL-ACTIONS-8** — The synced test `t/ci/workflows.t` must enforce
+  WFL-ACTIONS-4 in each consumer, over the workflows and the actions of that
+  consumer, against the fragments of that consumer.
+- **WFL-ACTIONS-9** — A shared workflow and a shared action run in the tree of
+  the consumer, and they read the fragments of the consumer. No test of this
+  repository holds them to the `mk/local.mk` of a consumer, and no test of a
+  consumer holds them either. A shared workflow must therefore export a name
+  that carries the scope of the workflow, as `DIST_NAME` does.
 
 <a id="wfl-reuse"></a>
 

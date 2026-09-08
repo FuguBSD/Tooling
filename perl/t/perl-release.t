@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 # ex:ts=8 sw=4:
-# Guards for .github/workflows/perl-release.yml, per WFL-SIGN
+# Guards for .github/workflows/perl-release.yml, per WFL-SIGN and
+# per WFL-ACTIONS-4
 #
 # The workflow signs the release assets of every Perl distribution of
 # the organization, so one defect here reaches four repositories.
@@ -117,6 +118,50 @@ subtest 'a release with no key still releases' => sub {
 	);
 };
 
+subtest 'the build step reaches the version and the names' => sub {
+	my $build = _step( $yml, 'Build the distribution tarball' );
+	ok( $build, 'the build step is there' ) or return;
+
+	# The step exports no name that a make fragment leaves open,
+	# per WFL-ACTIONS-4. A step that exported DIST replaced the
+	# path of scripts/dist, and the recipe then ran the
+	# distribution name as a command. perl/t/workflow-env.t holds
+	# the general guard, and this one holds the step that broke.
+	like(
+		$build,
+		qr/DIST_NAME:\s*\$\{\{\s*inputs\.dist\s*\}\}/,
+		'the distribution name reaches it under a free name'
+	);
+	like(
+		$build,
+qr/DIST_VERSION:\s*\$\{\{\s*steps\.version\.outputs\.version\s*\}\}/,
+		'and the version of this release with it'
+	);
+	unlike( $build, qr/^\s+DIST:/m,    'and never as DIST' );
+	unlike( $build, qr/^\s+VERSION:/m, 'and never as VERSION' );
+
+	# The command line beats the environment, so the recipe takes
+	# the version of this release and never a stale one.
+	like(
+		$build,
+		qr/make dist VERSION="\$DIST_VERSION"/,
+		'the recipe takes the version on the command line'
+	);
+
+	# The stable name serves releases/latest/download, which the
+	# deps manifest of each consumer names. The copy stands on two
+	# lines, so one match reads both. A lost continuation would
+	# leave the destination as a command of its own.
+	like(
+		$build,
+		qr{
+			cp \s "build/\$DIST_NAME-\$DIST_VERSION\.tar\.gz"
+			\s* \\ \n \s+ "build/\$DIST_NAME\.tar\.gz"
+		}x,
+		'the copy joins the versioned name to the stable one'
+	);
+};
+
 subtest 'the manifest names both tarballs' => sub {
 	ok( $SIGN, 'the signing step is there' ) or return;
 
@@ -125,11 +170,11 @@ subtest 'the manifest names both tarballs' => sub {
 	# tarball or the stable one.
 	like(
 		$SIGN,
-		qr/for name in "\$DIST-\$VERSION\.tar\.gz"/,
+		qr/for name in "\$DIST_NAME-\$DIST_VERSION\.tar\.gz"/,
 		'the versioned name enters the manifest'
 	);
-	like( $SIGN, qr/"\$DIST\.tar\.gz"/, 'and the stable name' );
-	like( $SIGN, qr/sha256sum/,         'the step digests each file' );
+	like( $SIGN, qr/"\$DIST_NAME\.tar\.gz"/, 'and the stable name' );
+	like( $SIGN, qr/sha256sum/,              'the step digests each file' );
 
 	# The manifest names a file and never a path, because one
 	# release directory holds unique names. A key that held a path
