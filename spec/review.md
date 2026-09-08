@@ -45,8 +45,8 @@ every consumer.
   round must fix it. A rejection must cite the code, the specification, or a
   decision.
 - **REV-LOOP-11** — The residue is each quorum finding of round three, each
-  `open` entry, and each accepted finding of a round with no fix commit. The
-  pull request body must hold the residue, and the operator must decide it.
+  `open` entry, and each quorum finding that no fixer fixed. The pull request
+  body must hold the residue, and the operator must decide it.
 - **REV-LOOP-12** — After the fixer of round `<N>` commits, the main session
   must write `git diff <round commit>...HEAD` to `explore/review/fix-<N>.diff`.
   Round `<N+1>` must read that file as its diff path.
@@ -73,10 +73,12 @@ receives them, so no session writes its own wrapper.
   preference.
 - **REV-AGENTS-5** — `fixer.md` must take the full tool set, the `effort` value
   `xhigh`, and the `permissionMode` value `acceptEdits`. It must make the
-  smallest change for each finding, name the directory in every command, run
-  `make check </dev/null`, and commit with the round number.
+  smallest change for each finding, name the directory in every command, and run
+  `make check </dev/null`. It must commit with the round number when it changes
+  a file. It must commit nothing when it changes no file.
 - **REV-AGENTS-6** — The fixer must report one disposition for each finding, and
-  each file that it touched.
+  each file that it touched. A fixer that changes no file must state that in its
+  report.
 - **REV-AGENTS-7** — `implementer.md` must take the shape of the fixer. It must
   receive one plan section and its acceptance test. It must commit, and it must
   report each file that it touched and the test result.

@@ -11,8 +11,7 @@
 
 ## Review panel
 
-<!-- One row for each round. The residue holds each quorum finding of the last
-round and each open entry. -->
+<!-- One row for each round. Tooling REV-LOOP-11 defines the residue. -->
 
 | Round | Findings | Quorum | Residue |
 | ----- | -------- | ------ | ------- |

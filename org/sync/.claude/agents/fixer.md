@@ -28,8 +28,9 @@ path.
 - Name the directory in every command, for example
   `make -C <repository path> check`.
 - Run `make check </dev/null` before the report. It must pass.
-- Commit with the round number, for example
+- Commit with the round number when you change a file, for example
   `fix(spec): correct the citation of round 2`.
+- Commit nothing when you change no file.
 
 ## The report
 
@@ -37,4 +38,4 @@ Report these, and nothing else:
 
 - One disposition for each finding: `fixed`, `rejected: <reason>`, or `dropped`.
 - Each file that you touched.
-- The commit that carries the fix.
+- The commit that carries the fix, or `no commit` when you changed no file.

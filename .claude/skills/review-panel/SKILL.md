@@ -92,4 +92,4 @@ The pull request body holds the result of the panel:
 ```
 
 The residue is each quorum finding of round three, each `open` entry, and each
-accepted finding of a round with no fix commit. The operator decides each one.
+quorum finding that no fixer fixed. The operator decides each one.
