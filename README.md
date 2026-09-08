@@ -34,12 +34,17 @@ From a consumer repository root, with this repository as a sibling checkout:
     ../Tooling/scripts/sync           # copy the shared files in
     ../Tooling/scripts/sync --check   # report drift, change nothing
 
-A consumer selects its packs with `sync.pack` lines in `.toolingrc`: every
-consumer takes `org`, a Perl repository adds `perl`, a repository with OpenTofu
-code adds `infra`, a repository with a fuguweb site adds `web`, and a repository
-with Python code adds `python`. A consumer's `check.yml` runs the same `--check`
-as a drift gate. A consumer's `release.yml`, `build.yml`, and `publish.yml` are
-thin callers of the reusable workflows.
+A consumer selects its packs with `sync.pack` lines in `.toolingrc`:
+
+- every consumer takes `org`
+- a Perl repository adds `perl`
+- a repository with OpenTofu code adds `infra`
+- a repository with a fuguweb site adds `web`
+- a repository with Python code adds `python`
+
+A consumer's `check.yml` runs the same `--check` as a drift gate. A consumer's
+`release.yml`, `build.yml`, and `publish.yml` are thin callers of the reusable
+workflows.
 
 ## Commands
 

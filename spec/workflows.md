@@ -38,8 +38,8 @@ workflow, the setup-perl cache, the setup-uv cache, and the gitleaks gate.
 - **WFL-ACTIONS-7** — The test `perl/t/workflow-env.t` must enforce
   WFL-ACTIONS-4 over the workflows and the actions of this repository.
 - **WFL-ACTIONS-8** — The synced test `t/ci/workflows.t` must enforce
-  WFL-ACTIONS-4 in each consumer, over the workflows and the actions of that
-  consumer, against the fragments of that consumer.
+  WFL-ACTIONS-4 in each consumer. It must check the workflows and the actions of
+  that consumer against the fragments of that consumer.
 - **WFL-ACTIONS-9** — A shared workflow and a shared action run in the tree of
   the consumer, and they read the fragments of the consumer. No test of this
   repository holds them to the `mk/local.mk` of a consumer, and no test of a
@@ -57,10 +57,10 @@ workflow, the setup-perl cache, the setup-uv cache, and the gitleaks gate.
   full `FuguBSD/Tooling/...@main` path, never `./`. The workspace holds the
   caller's checkout.
 - **WFL-REUSE-4** — The Perl release workflow must accept the release tag as an
-  input. An environment that cannot push a tag makes the tag inside a workflow,
-  and GitHub raises no push event for a tag that `GITHUB_TOKEN` pushes. The
-  input must select both the checkout and the version. Without it the workflow
-  must read the ref of the push.
+  input. An environment that cannot push a tag makes the tag inside a workflow.
+  GitHub raises no push event for a tag that `GITHUB_TOKEN` pushes. The input
+  must select both the checkout and the version. Without it the workflow must
+  read the ref of the push.
 - **WFL-REUSE-3** — `environment: release` must stay in the callee job, and
   `permissions` and `secrets: inherit` must stay in the caller.
 
@@ -126,9 +126,9 @@ organization.
 ## The setup-uv cache
 
 - **WFL-UV-1** — The setup-uv action must install a pinned uv release from its
-  tarball, and must run `uv sync --locked` on a cache hit and on a miss. The
-  sync must fail on a stale lockfile, and must not rewrite it: a repair here
-  would blind every lockfile gate after the action.
+  tarball. It must run `uv sync --locked` on a cache hit and on a miss. The sync
+  must fail on a stale lockfile, and must not rewrite it: a repair here would
+  blind every lockfile gate after the action.
 - **WFL-UV-2** — The setup-uv cache key must hash `uv.lock`, `.python-version`,
   and `pyproject.toml`, and nothing else. The key must also name the repository,
   the uv release, and the machine architecture, because the environment holds

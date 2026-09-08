@@ -187,7 +187,7 @@ bucket.
 ## CI
 
 - Do not use the `pull_request_target` trigger.
-- Do not run a plan on a pull request from a fork: `tofu init` executes the
+- Do not run a plan on a pull request from a fork. `tofu init` executes the
   provider binary that the branch names.
 - The `infra-apply` environment must permit the `main` branch only.
 - The `infra-admin` environment holds the operator key.
