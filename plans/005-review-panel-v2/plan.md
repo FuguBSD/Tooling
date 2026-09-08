@@ -51,9 +51,10 @@ figures.
 
 Eighteen sessions ran a panel, 79 rounds in all. One change set of five plans
 ran seven rounds. Its rounds returned 30, 27, 29, 29, 21, 21 and 25 findings,
-and the quorum count never reached zero. Of the 248 reviewer reports in the
-traces, 26 said no findings. The operator stopped one loop by hand: "Let's round
-3 be the last round".
+and the quorum count never reached zero. The traces hold 248 reviewer
+transcripts. The count exceeds 79 rounds of three because some transcripts
+belong to sessions whose main file is absent. Of the 248, 26 said "no findings".
+The operator stopped one loop by hand: "Let's round 3 be the last round".
 
 ### The main session makes every fix
 
@@ -100,12 +101,14 @@ kept its main context at 255k over six hours.
 
 `explore/review/ledger.md` holds one line for each finding. Each line holds the
 finding number, the round, the file and line, the severity, the members that
-reported it, and the disposition. A disposition is `open`, `fixed <hash>`,
-`rejected: <reason>`, or `recorded`. A rejection cites the code, the
-specification, or a decision. An `open` entry is a blocker that one member
-reported. The next round confirms it or drops it. An `open` entry after the last
-round joins the residue. The `explore/` directory is gitignored in every
-consumer.
+reported it, and the disposition. A disposition is `open`, `accepted`,
+`fixed <hash>`, `rejected: <reason>`, `dropped`, or `recorded`. A rejection
+cites the code, the specification, or a decision. An `accepted` entry is a
+quorum finding that waits for the fixer. An `open` entry is a blocker that one
+member reported. The next round confirms it or drops it. A confirmed entry
+becomes `accepted` when two members confirm it. A dropped entry gets the
+disposition `dropped`. An `open` entry after the last round joins the residue.
+The `explore/` directory is gitignored in every consumer.
 
 ### The round
 
@@ -116,15 +119,17 @@ consumer.
    from the skill. The prompt holds the repository path, the diff path, the
    ledger path, and the round number. It writes no other prompt text.
 3. It merges the reports into the ledger. A blocker that two members report is a
-   quorum finding. A blocker that one member reports stays `open`. A minor
-   finding gets the disposition `recorded`.
-4. In rounds one and two, it launches one `fixer` agent. The fixer gets the
+   quorum finding with the disposition `accepted`. A blocker that one member
+   reports stays `open`. A minor finding gets the disposition `recorded`.
+4. In rounds one and two, it launches one `fixer` agent when the round has a
+   quorum finding. Without one, the skill stops per step 6. The fixer gets the
    repository path, the diff path, and the ledger path. The main session edits
    no repository file itself.
 5. Round two and round three review the fix diff,
    `git diff <round commit>...HEAD`. They also review the files that the fixer
    report cites. A reviewer confirms each `fixed` entry by its hash, and reports
-   a new defect in that scope only.
+   a new defect in that scope only. The reviewers also get each `open` entry. A
+   reviewer confirms it or drops it.
 6. The skill stops after a round with no quorum finding, or after round three.
    Round three has no fixer. The residue is the quorum findings of round three
    plus each `open` entry. The pull request body gets the round table. The table
@@ -214,7 +219,7 @@ repository, and each consumer takes it through sync afterwards.
 The two hooks wait for a measured pilot. One is a lint hook on each edit of a
 Markdown file, scoped to the fixer. The other is a gate hook at the stop of the
 fixer. The lint hook needs a single-file mode of `ste-lint`, which plan 006
-adds. It must match the Bash tool as well as `Edit` and `Write`.
+adds. The lint hook must match the Bash tool as well as `Edit` and `Write`.
 
 The workspace session rules wait for the workspace plan. A synced file cannot
 hold a workspace-only rule.
