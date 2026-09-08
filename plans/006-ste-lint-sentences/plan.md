@@ -17,10 +17,14 @@ change.
 
 This change adds one unit to [spec/ste-lint.md](../../spec/ste-lint.md) for the
 sentence rules. It amends STE-RULES-1, so a sentence rule can exist beside the
-three tables, and it adds a rule to STE-SCOPE for the `--file` option. The
-`Extends:` form comes from pull request 26 of this repository. It sets each
-register row in the same change. This plan names no new rule number, because a
-number exists only after the rule lands.
+three tables. It amends STE-RULES-3, so a sentence finding names the rule
+"sentence length" with the count and the limit. It amends STE-RULES-6, so a
+block can hold more than one sentence finding. It adds a rule to STE-SCOPE for
+the `--file` option. The new rule states that the caller chooses the file, and
+that STE-SCOPE-1 and STE-SCOPE-2 govern the scope walk only. The `Extends:` form
+comes from pull request 26 of this repository. It sets each register row in the
+same change. This plan names no new rule number, because a number exists only
+after the rule lands.
 
 ## Decisions
 
@@ -42,9 +46,9 @@ An audit of 72 sessions measured each claim below on 2026-09-08.
 ### The panel does the linter work
 
 A hand-classified sample of 40 reviewer finding lines held four writing-standard
-findings, 12 percent of the real findings. Two examples: "This 49-word sentence
-breaks the 25-word limit of the writing standard, and about 65 more sentences
-across the five plans do the same", and "The instruction 'Append a rule to
+findings, 12 percent of the real findings. Two examples follow. "This 49-word
+sentence breaks the 25-word limit of the writing standard, and about 65 more
+sentences across the five plans do the same". "The instruction 'Append a rule to
 LRN-DELIVER: ...' runs 49 words, above the 20-word instruction limit and the
 25-word descriptive limit". Three reviewers at high effort found these at 60k to
 215k tokens each.
@@ -83,43 +87,56 @@ scope.
 
 ### The sentence
 
-The scanner splits a block at a period or a question mark that whitespace or the
-block end follows. It replaces each inline code span with one placeholder word
-before the split, so a period inside a span does not end a sentence, and a span
-counts as one word. It drops a link target and keeps the link text. A word is
-one whitespace-separated token that holds a letter or a digit. A bold unit ID
-counts as one word, and a dash counts as none.
+The scanner splits a block at a sentence end. A sentence end is a period or a
+question mark, an optional closing quotation mark or parenthesis, and then
+whitespace or the block end. The scanner replaces each inline code span with one
+placeholder word before the split. A period inside a span then does not end a
+sentence, and a span counts as one word. It drops a link target and keeps the
+link text. A word is one whitespace-separated token that holds a letter or a
+digit. A bold unit ID counts as one word, and a dash counts as none.
 
 ### The two limits
 
-An instruction sentence starts with a word of a new table `@IMPERATIVES`: the
-imperative verbs of the repository prose, for example `Run`, `Read`, `Write`,
+An instruction sentence starts with a word of a new table `@IMPERATIVES`, the
+imperative verbs of the repository prose. Examples are `Run`, `Read`, `Write`,
 `Add`, `Delete`, `Set`, `Use`, `Keep`, `Put`, `Move`, `Commit`, `Push`,
 `Report`, `Return`, `Launch`, `Dispatch`, `Repeat`, `Stop`, `Do`, and `Never`.
 The table holds the verb in its imperative form only. An instruction sentence
 must hold fewer than 20 words. Every other sentence must hold fewer than 25
 words.
 
-A finding names the file, the first line of the sentence, the word count, the
-limit, and the first 60 characters of the sentence. The finding joins the count
-of STE-RULES-5, and the run exits non-zero.
+A finding names the file, the first line of the sentence, and the rule "sentence
+length". It holds the word count, the limit, and the first 60 characters of the
+sentence. The finding joins the count of STE-RULES-5, and the run exits
+non-zero. A block can hold more than one sentence finding.
 
 ### The single-file mode
 
 `--file PATH` names one file. The option repeats. With one `--file` or more, the
-scanner reads those files only, and it skips the scope walk. Each file gets the
-fence exemption, the span exemption, and the sentence rules. A path is absolute
-or relative to the working directory. A hook calls `ste-lint --file <path>`, and
-an agent can call it on the file it edits.
+scanner reads those files only, and it skips the scope walk. Every rule runs on
+each named file: the word table, the phrase table, the pattern table, and the
+sentence rules. Each file gets the fence exemption and the span exemption. A
+path is absolute or relative to the working directory. A hook calls
+`ste-lint --file <path>`, and an agent can call it on the file it edits.
 
 ### The tests
 
-`perl/t/ste-lint.t` gains fixtures: a 26-word sentence that wraps across two
-lines gives one finding; a 24-word sentence gives none; a table row of 30 words
-gives none; a heading of 30 words gives none; an instruction of 21 words gives
-one finding; a sentence whose span holds a period gives one sentence; a period
-inside a link target does not split; `--file` on a fixture outside the scope
-scans it, and reports the same finding as a root scan.
+`perl/t/ste-lint.t` gains these fixtures:
+
+- A 26-word sentence that wraps across two lines gives one finding.
+- A 25-word descriptive sentence gives one finding, and a 24-word one gives
+  none.
+- A 20-word instruction gives one finding, and a 19-word one gives none.
+- A table row of 30 words gives none.
+- A heading of 30 words gives none.
+- A 30-word line in YAML front matter gives none.
+- A 30-word HTML comment gives none.
+- A 26-word sentence in a blockquote gives one finding.
+- A sentence whose span holds a period gives one sentence.
+- A period inside a link target does not split.
+- `--file` on a fixture outside the scope scans it, and reports the same finding
+  as a root scan.
+- A repeated `--file` scans both files.
 
 ### The rollout
 
@@ -135,12 +152,17 @@ holds the rollout record.
 - `org/sync/scripts/ste-lint`: the block scanner, the sentence split, the
   imperative table, the two limits, and `--file`.
 - `perl/t/ste-lint.t`: the fixtures of the Tests section.
-- `spec/ste-lint.md`: the sentence unit, the STE-RULES-1 amendment, and the
-  `--file` rule under STE-SCOPE.
+- `spec/ste-lint.md`: the sentence unit, the STE-RULES-1, STE-RULES-3 and
+  STE-RULES-6 amendments, and the `--file` rule under STE-SCOPE.
 - `spec/STATUS.md`: the rows.
 - `org/sync/CLAUDE.md`: the writing-standard line names the sentence rules
   beside the banned words and patterns.
-- The root copy of `CLAUDE.md`, from `scripts/sync`.
+- `org/sync/.claude/skills/review-panel/SKILL.md`: the review prompt states that
+  the lint checks the sentence rules, and asks for no sentence-length finding.
+  Plan 005 rewrites the same file, and the two changes compose at the later
+  merge.
+- The root copies of `CLAUDE.md` and of the review-panel skill, from
+  `scripts/sync`.
 - Delete this plan.
 
 ## Status
@@ -151,6 +173,8 @@ Every item of the Work section lands now, in this repository. The repository
 prose of Tooling passes the new rules before the change merges.
 
 ### What waits
+
+This plan merges after pull request 26.
 
 The consumer repairs wait for the sync of each consumer. Each consumer lands the
 script and its repairs in one change, per decision 4.
