@@ -124,4 +124,20 @@ subtest 'a job that installs beside the shared action fails' => sub {
 	isnt( $status, 0, 'the guard refuses the job' );
 };
 
+subtest 'a job that uses the retired gitleaks action fails' => sub {
+
+	# WFL-GITLEAKS-4. actions/setup-gitleaks is gone, so a workflow
+	# that still names it fails on the runner with no such action.
+	my $yml = $DEPS =~ s{
+	    (      - \s name: \s Install \s dependencies\n
+	      (?: .*\n )*? )
+	    (?= \ {6} - \s name: \s Scan )
+	}{      - name: Setup gitleaks\n        uses: FuguBSD/Tooling/actions/setup-gitleaks\@main\n\n}xr;
+	isnt( $yml, $DEPS, 'the fixture holds the action' );
+
+	my ( $status, $output ) = _verdict($yml);
+	isnt( $status, 0, 'the guard refuses the job' );
+	like( $output, qr/setup-gitleaks/, 'and it names the action' );
+};
+
 done_testing();
