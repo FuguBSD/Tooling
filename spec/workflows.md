@@ -15,7 +15,12 @@ action.
   WFL-ACTIONS-1 in every consumer.
 - **WFL-ACTIONS-3** — A workflow step must run `make deps` with no argument. A
   word after it names a second target, and `make` stops. The synced test must
-  refuse such a step, because the fault reaches the runner alone.
+  refuse such a step, because the fault reaches the runner alone. `deps-test`
+  and `deps-develop` are targets of their own, and the test must accept each
+  one.
+- **WFL-ACTIONS-10** — No consumer can guard the synced test, so this repository
+  must guard it. The test `perl/t/sync-workflows.t` must drive the synced test
+  against fixture trees, and must hold it to WFL-ACTIONS-3 in both directions.
 - **WFL-ACTIONS-4** — A workflow and an action must not export a name that a
   make fragment leaves open to the environment. `make` imports the environment.
   A fragment that assigns a name with `?=` keeps the imported value, and one
