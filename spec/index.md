@@ -13,12 +13,14 @@ contract, the ID conventions, and the document tables.
 - Read [DECISIONS.md](DECISIONS.md) before you make a plan.
 - A plan must not go against a decision. To go against a decision, propose a
   change to [DECISIONS.md](DECISIONS.md) and get human approval first.
-- A plan must cite each unit that it implements, for example
-  `Implements: SYNC-PACKS`.
-- A plan can exclude a rule from a cited unit with `without`, for example
-  `Implements: SYNC-PACKS without SYNC-PACKS-2`.
+- A plan must cite each unit that it implements and that is not `done`, for
+  example `Implements: MK-DISPATCH`.
+- A plan can exclude a rule from a unit under `Implements:` with `without`, for
+  example `Implements: MK-DISPATCH without MK-DISPATCH-4`.
 - A plan must cite each unit that it touches but defers, for example
   `Defers: WFL-CACHE`.
+- A plan must cite each `done` unit that it extends, for example
+  `Extends: SYNC-CHECK`.
 - The change that implements a unit, or a part of a unit, must set the state of
   the unit in [STATUS.md](STATUS.md) in the same change.
 
