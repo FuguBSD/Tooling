@@ -15,8 +15,8 @@ A round reviews one committed diff with three independent reviewers. The ledger
 every consumer.
 
 - **REV-LOOP-1** — The main session must run `make check </dev/null` and must
-  commit every change before a round. It must write `git diff <base>...HEAD` to
-  `explore/review/round-<N>.diff`.
+  commit every change before a round. Before round one it must write
+  `git diff <base>...HEAD` to `explore/review/base.diff`.
 - **REV-LOOP-2** — A round must launch three `reviewer` agents with one fixed
   prompt of the skill. The prompt must hold the repository path, the diff path,
   the ledger path, and the round number.
@@ -28,10 +28,9 @@ every consumer.
 - **REV-LOOP-5** — Round one and round two must launch one `fixer` agent when
   the round holds an accepted finding. The fixer must get the repository path,
   the diff path, and the ledger path.
-- **REV-LOOP-6** — Round two and round three must review the fix diff,
-  `git diff <round commit>...HEAD`, and each file that the fixer report cites. A
-  reviewer must confirm every `fixed` entry, and must report a new defect inside
-  that scope only.
+- **REV-LOOP-6** — Round two and round three must review the fix diff of the
+  last round, and each file that the fixer report cites. A reviewer must confirm
+  every `fixed` entry, and must report a new defect inside that scope only.
 - **REV-LOOP-7** — The loop must stop after a round with no quorum finding, or
   after round three. Round three must run no fixer.
 - **REV-LOOP-8** — The main session must dispatch. After the first launch of a
@@ -47,6 +46,9 @@ every consumer.
 - **REV-LOOP-11** — The residue is each quorum finding of round three and each
   `open` entry. The pull request body must hold the residue, and the operator
   must decide it.
+- **REV-LOOP-12** — After the fixer of round `<N>` commits, the main session
+  must write `git diff <round commit>...HEAD` to `explore/review/fix-<N>.diff`.
+  Round `<N+1>` must read that file as its diff path.
 
 <a id="rev-agents"></a>
 
@@ -99,3 +101,6 @@ project session needs the merge procedure.
   holds the round, the finding count, the quorum count, and the residue.
   `.github/pull_request_template.md` must carry the table, in place of a review
   checklist line.
+- **REV-MERGE-5** — `pull-it` must run the panel one time for each change set.
+  It must push each fix commit of the panel, and must watch the checks once more
+  before the merge.

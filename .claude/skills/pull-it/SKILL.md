@@ -25,11 +25,13 @@ settle.
 1. Squash in-session review fixes into the commits that they correct.
 2. Push the branch: `git push --force-with-lease origin HEAD`. Open a pull
    request when none exists.
-3. Watch the checks: `gh pr checks --watch`.
-4. When a check fails, dispatch a `fixer` agent with the failure log. Push the
-   fix commit. Return to step 3.
-5. Run the [review panel](../review-panel/SKILL.md). It runs at most three
-   rounds. Push each fix commit of the panel, and return to step 3.
+3. Watch the checks: `gh pr checks --watch`. When a check fails, dispatch a
+   `fixer` agent with the failure log. Push the fix commit, and watch the checks
+   again.
+4. Run the [review panel](../review-panel/SKILL.md) one time. It runs at most
+   three rounds.
+5. Push each fix commit of the panel. Watch the checks once more, and repair a
+   failure as step 3 states.
 6. Put the round table and the residue in the pull request body. The operator
    decides each residue entry.
 7. Squash merge: `gh pr merge --squash --delete-branch`.

@@ -43,17 +43,22 @@ rounds. You dispatch each agent, and a `fixer` agent makes every fix.
 ## The round
 
 1. Run `make check </dev/null`. Commit every change.
-2. Write the diff: `git diff <base>...HEAD > explore/review/round-<N>.diff`.
-3. Launch three `reviewer` agents in parallel with the prompt below.
+2. In round one, write the base diff:
+   `git diff <base>...HEAD > explore/review/base.diff`.
+3. Launch three `reviewer` agents in parallel with the prompt below. Round one
+   reads `explore/review/base.diff`, and a later round reads
+   `explore/review/fix-<N-1>.diff`.
 4. Merge the three reports into the ledger.
 5. In round one and round two, launch one `fixer` agent when the round holds an
    accepted finding. Give it the repository path, the diff path, and the ledger
    path.
-6. Stop after a round with no quorum finding, or after round three. Round three
+6. After the fixer commits, write the fix diff:
+   `git diff <round commit>...HEAD > explore/review/fix-<N>.diff`.
+7. Stop after a round with no quorum finding, or after round three. Round three
    runs no fixer.
 
-Round two and round three review the fix diff, `git diff <round commit>...HEAD`,
-and each file that the fixer report cites.
+Round two and round three review the fix diff of the last round, and each file
+that the fixer report cites.
 
 ## The review prompt
 
@@ -71,9 +76,9 @@ Send this prompt to each reviewer, with the four values in place:
 
 Add these two sentences in round two and round three:
 
-> The diff is the fix diff of the last round. Confirm each `fixed` entry of the
-> ledger against it, report a new defect inside that scope only, and confirm or
-> drop each `open` entry.
+> The diff at `<diff path>` is the fix diff of the last round. Confirm each
+> `fixed` entry of the ledger against it, report a new defect inside that scope
+> only, and confirm or drop each `open` entry.
 
 ## The round table
 
