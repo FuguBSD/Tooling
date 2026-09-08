@@ -39,6 +39,38 @@ sub run_check ( $root, @args )
 	return ( $? >> 8, $output );
 }
 
+# slurp($path):
+#	The whole file as decoded text.
+sub slurp ($path)
+{
+	open my $fh, '<:encoding(UTF-8)', $path or die "read $path: $!";
+	local $/ = undef;
+	my $text = <$fh>;
+	close $fh;
+
+	return $text;
+}
+
+# git_fixture():
+#	A fixture tree under git, with one commit on the main branch.
+#	Return the root, the git command prefix, and the base commit.
+sub git_fixture ()
+{
+	my $root = fixture();
+	my $git =
+	      "git -C \Q$root\E -c commit.gpgsign=false -c core.hooksPath="
+	    . "/dev/null -c user.email=t\@example.com -c user.name=Test";
+	for my $step ( 'init -q -b main', 'add -A', 'commit -qm base' ) {
+		qx($git $step 2>&1);
+		die "git $step failed\n" if $?;
+	}
+	my $base = qx($git rev-parse HEAD);
+	die "git rev-parse failed\n" if $?;
+	chomp $base;
+
+	return ( $root, $git, $base );
+}
+
 # fixture(%override):
 #	A minimal valid specification tree. An override replaces one
 #	file by its relative path; an undef value omits the file.
@@ -624,6 +656,497 @@ EOF
 	    run_check( fixture( 'spec/fixture.md' => $doc ) );
 	isnt( $exit, 0, 'a local unresolved decision fails' );
 	like( $output, qr/unresolved decision: D-77/, 'and is named' );
+}
+
+# A unit sits under one verb only. One unit under Defers and under
+# Implements, or under Defers and Extends, fails in one block and
+# across two blocks. A without clause leaves the unit token in place.
+# Two different units, and a deferred rule of an implemented unit,
+# each pass.
+{
+	my $root = fixture(
+		'spec/fixture.md' => <<'EOF',
+# The fixture
+
+<a id="fix-one"></a>
+
+## Unit one
+
+- **FIX-ONE-1** — The fixture must exist.
+
+<a id="fix-two"></a>
+
+## Unit two
+
+- **FIX-TWO-1** — The fixture can grow.
+EOF
+	);
+	my $plan = "$root/plans/012-o/plan.md";
+	write_file( $plan,
+		"# 012 \x{2014} O\n\nImplements: FIX-TWO. Defers: FIX-TWO.\n" );
+	my ( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'one unit under Implements and Defers fails' );
+	like(
+		$output,
+		qr/under Implements and Defers: FIX-TWO/,
+		'and the verbs and the unit are named'
+	);
+
+	write_file( $plan,
+		"# 012 \x{2014} O\n\n- Implements: FIX-TWO\n- Defers: FIX-TWO\n"
+	);
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'the two verbs contradict across two blocks too' );
+	like(
+		$output,
+		qr/under Implements and Defers: FIX-TWO/,
+		'and the verbs and the unit are named'
+	);
+
+	write_file( $plan,
+		"# 012 \x{2014} O\n\nExtends: FIX-ONE. Defers: FIX-ONE.\n" );
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'one unit under Extends and Defers fails' );
+	like(
+		$output,
+		qr/under Extends and Defers: FIX-ONE/,
+		'and the verbs and the unit are named'
+	);
+
+	write_file( $plan,
+"# 012 \x{2014} O\n\nImplements: FIX-TWO without FIX-TWO-1. Defers: FIX-TWO.\n"
+	);
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a without clause leaves the unit token in place' );
+	like(
+		$output,
+		qr/under Implements and Defers: FIX-TWO/,
+		'and the verbs and the unit are named'
+	);
+
+	write_file( $plan,
+		"# 012 \x{2014} O\n\nImplements: FIX-TWO. Defers: FIX-ONE.\n" );
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'two different units under the two verbs pass' )
+	    or diag($output);
+
+	write_file( $plan,
+"# 012 \x{2014} O\n\nImplements: FIX-TWO without FIX-TWO-1. Defers: FIX-TWO-1.\n"
+	);
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a deferred rule of an implemented unit passes' )
+	    or diag($output);
+}
+
+# One unit under Implements and under Extends fails, because the unit
+# is done or it is not. A Defers citation marks every unit token of
+# its text.
+{
+	my $root = fixture(
+		'spec/fixture.md' => <<'EOF',
+# The fixture
+
+<a id="fix-one"></a>
+
+## Unit one
+
+- **FIX-ONE-1** — The fixture must exist.
+
+<a id="fix-two"></a>
+
+## Unit two
+
+- **FIX-TWO-1** — The fixture can grow.
+EOF
+	);
+	my $plan = "$root/plans/013-n/plan.md";
+	write_file( $plan,
+		"# 013 \x{2014} N\n\nImplements: FIX-ONE. Extends: FIX-ONE.\n"
+	);
+	my ( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a done unit under Implements and Extends fails' );
+	like( $output, qr/Implements cites a done unit/, 'and is named' );
+
+	write_file( $plan,
+		"# 013 \x{2014} N\n\nImplements: FIX-TWO. Extends: FIX-TWO.\n"
+	);
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'an open unit under Implements and Extends fails' );
+	like( $output, qr/Extends cites a unit that is not done/,
+		'and is named' );
+
+	write_file( $plan,
+"# 013 \x{2014} N\n\nImplements: FIX-TWO. Defers: FIX-ONE and FIX-TWO.\n"
+	);
+	( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a Defers citation marks each of its unit tokens' );
+	like(
+		$output,
+		qr/under Implements and Defers: FIX-TWO/,
+		'and the second token is named'
+	);
+
+	write_file( $plan,
+"# 013 \x{2014} N\n\nImplements: FIX-TWO. Defers: FIX-ONE. FIX-TWO lands here.\n"
+	);
+	( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'a period ends the citation before the prose token' )
+	    or diag($output);
+}
+
+# SPC-LINKS-2 and the SPC-DOCS rules each reject their own defect.
+{
+	my ( $exit, $output ) = run_check(
+		fixture(
+			      'spec/fixture.md' => "# The fixture\n\n"
+			    . "[gone](index.md#no-such-heading)\n"
+		) );
+	isnt( $exit, 0, 'a broken anchor fails' );
+	like( $output, qr/broken anchor/, 'and is named' );
+
+	( $exit, $output ) =
+	    run_check( fixture( 'spec/other.md' => "# Other\n\nProse.\n" ) );
+	isnt( $exit, 0, 'a document that the index omits fails' );
+	like( $output, qr/does not list spec\/other\.md/, 'and is named' );
+
+	( $exit, $output ) = run_check(
+		fixture(
+			'spec/index.md' => <<'EOF',
+# Fixture specification
+
+## Specification documents
+
+| Code | Document | Area |
+| --- | --- | --- |
+| FIX | [fixture.md](fixture.md) | The fixture |
+| OTH | [other.md](other.md) | The absent one |
+
+## Governance documents
+
+| Document | Role |
+| --- | --- |
+| [DECISIONS.md](DECISIONS.md) | The decisions. |
+| [ROADMAP.md](ROADMAP.md) | The schedule. |
+| [STATUS.md](STATUS.md) | The register. |
+EOF
+		) );
+	isnt( $exit, 0, 'an index row for an absent document fails' );
+	like( $output, qr/lists a missing document: other\.md/,
+		'and is named' );
+
+	for my $absent (qw(ROADMAP.md DECISIONS.md STATUS.md)) {
+		( $exit, $output ) =
+		    run_check( fixture( "spec/$absent" => undef ) );
+		isnt( $exit, 0, "an absent spec/$absent fails" );
+		like( $output, qr/\Q$absent\E does not exist/, 'and is named' );
+	}
+
+	( $exit, $output ) = run_check(
+		fixture(
+			      'spec/fixture.md' => "# The fixture\n\n"
+			    . "<a id=\"fix-one\"></a>\n\n## Unit one\n\n"
+			    . "- **FIX-ONE-1** \x{2014} The fixture must exist.\n\n"
+			    . "<a id=\"fix-two\"></a>\n\n## Unit two\n\n"
+			    . "The work starts in Phase 2.\n"
+		) );
+	isnt( $exit, 0, 'a schedule phase in a unit document fails' );
+	like( $output, qr/must not state a schedule phase/, 'and is named' );
+}
+
+# A fenced code block is exempt from the scan rules.
+{
+	my ( $exit, $output ) = run_check(
+		fixture(
+			      'spec/fixture.md' => "# The fixture\n\n"
+			    . "```\n[gone](missing.md)\nFIX-NINE\n```\n\n"
+			    . "<a id=\"fix-one\"></a>\n\n## Unit one\n\n"
+			    . "- **FIX-ONE-1** \x{2014} The fixture must exist.\n\n"
+			    . "<a id=\"fix-two\"></a>\n\n## Unit two\n\nProse.\n"
+		) );
+	is( $exit, 0, 'a fence hides a broken link and a stray token' )
+	    or diag($output);
+
+	( $exit, $output ) = run_check(
+		fixture(
+			      'plans/014-m/plan.md' => "# 014 \x{2014} M\n\n"
+			    . "```\nImplements: FIX-ONE.\n```\n"
+		) );
+	is( $exit, 0, 'a fenced citation is not a citation' ) or diag($output);
+}
+
+# A unit anchor and a rule definition each sit in one document, once.
+{
+	my $twice = <<'EOF';
+# The fixture
+
+<a id="fix-one"></a>
+
+## Unit one
+
+- **FIX-ONE-1** — The fixture must exist.
+- **FIX-ONE-1** — The fixture must exist twice.
+
+<a id="fix-two"></a>
+
+## Unit two
+
+Prose only.
+EOF
+	my ( $exit, $output ) =
+	    run_check( fixture( 'spec/fixture.md' => $twice ) );
+	isnt( $exit, 0, 'a duplicate rule fails' );
+	like( $output, qr/duplicate rule: FIX-ONE-1/, 'and is named' );
+
+	my $stray = <<'EOF';
+# Fixture specification
+
+## Specification documents
+
+| Code | Document | Area |
+| --- | --- | --- |
+| FIX | [fixture.md](fixture.md) | The fixture |
+| OTH | [other.md](other.md) | The other |
+
+## Governance documents
+
+| Document | Role |
+| --- | --- |
+| [DECISIONS.md](DECISIONS.md) | The decisions. |
+| [ROADMAP.md](ROADMAP.md) | The schedule. |
+| [STATUS.md](STATUS.md) | The register. |
+EOF
+	( $exit, $output ) = run_check(
+		fixture(
+			'spec/index.md' => $stray,
+			'spec/other.md' => "# Other\n\n"
+			    . "- **FIX-TWO-1** \x{2014} This rule left its document.\n"
+		) );
+	isnt( $exit, 0, 'a rule outside the document of its unit fails' );
+	like( $output, qr/rule outside the document of its unit: FIX-TWO-1/,
+		'and is named' );
+
+	( $exit, $output ) = run_check(
+		fixture(
+			'spec/index.md' => $stray,
+			'spec/other.md' => "# Other\n\n"
+			    . "<a id=\"fix-two\"></a>\n\n"
+			    . "## Unit two, in the wrong document\n\nProse.\n"
+		) );
+	isnt( $exit, 0, 'a unit anchor in the wrong document fails' );
+	like( $output, qr/unit anchor in the wrong document: fix-two/,
+		'and is named' );
+
+	my $dup = <<'EOF';
+# The fixture
+
+<a id="fix-one"></a>
+
+## Unit one
+
+- **FIX-ONE-1** — The fixture must exist.
+
+<a id="fix-one"></a>
+
+## Unit one again
+
+Prose only.
+
+<a id="fix-two"></a>
+
+## Unit two
+
+Prose only.
+EOF
+	( $exit, $output ) = run_check( fixture( 'spec/fixture.md' => $dup ) );
+	isnt( $exit, 0, 'a duplicate unit anchor fails' );
+	like( $output, qr/duplicate unit anchor: fix-one/, 'and is named' );
+}
+
+# A register row carries a state, a note, an evidence link, and no
+# retired ID. The register needs a Units table.
+{
+	my $head = "# Register\n\n## Units\n\n"
+	    . "| Unit | State | Done by | Note |\n| --- | --- | --- | --- |\n";
+	my $tail = "\n## Code roots\n\n| Document | Roots |\n| --- | --- |\n"
+	    . "| fixture.md | `lib` |\n\n## Retired IDs\n\n| ID |\n| --- |\n";
+	my $two = "| [FIX-TWO](fixture.md#fix-two) | open | \x{2014} | "
+	    . "\x{2014} |\n";
+
+	my ( $exit, $output ) = run_check(
+		fixture(
+			      'spec/STATUS.md' => $head
+			    . "| [FIX-ONE](fixture.md#fix-one) | done | "
+			    . "\x{2014} | \x{2014} |\n"
+			    . $two
+			    . $tail
+		) );
+	isnt( $exit, 0, 'a done row without an evidence link fails' );
+	like( $output, qr/a done row needs an evidence link/, 'and is named' );
+
+	( $exit, $output ) = run_check(
+		fixture(
+			      'spec/STATUS.md' => $head
+			    . "| [FIX-ONE](fixture.md#fix-one) | done | "
+			    . "\x{2014} | [code](../lib/code.pm) |\n"
+			    . "| [FIX-TWO](fixture.md#fix-two) | partial | "
+			    . "\x{2014} | \x{2014} |\n"
+			    . $tail
+		) );
+	isnt( $exit, 0, 'a partial row without a note fails' );
+	like( $output, qr/a partial row needs a note/, 'and is named' );
+
+	( $exit, $output ) = run_check(
+		fixture(
+			      'spec/STATUS.md' => $head
+			    . "| [FIX-ONE](fixture.md#fix-one) | done | "
+			    . "\x{2014} | [gone](../lib/absent.pm) |\n"
+			    . $two
+			    . $tail
+		) );
+	isnt( $exit, 0, 'a broken evidence link fails' );
+	like( $output, qr/broken evidence link/, 'and is named' );
+
+	( my $retired =
+		      $head
+		    . "| [FIX-ONE](fixture.md#fix-one) | done | \x{2014} | "
+		    . "[code](../lib/code.pm) |\n"
+		    . $two
+		    . $tail ) =~
+	    s/\| ID \|\n\| --- \|\n/| ID |\n| --- |\n| FIX-ONE |\n/;
+	( $exit, $output ) =
+	    run_check( fixture( 'spec/STATUS.md' => $retired ) );
+	isnt( $exit, 0, 'a retired ID with an anchor fails' );
+	like( $output, qr/a retired ID still has an anchor/, 'and is named' );
+
+	( $exit, $output ) = run_check(
+		fixture( 'spec/STATUS.md' => "# Register\n\nNo table.\n" ) );
+	isnt( $exit, 0, 'a register without a Units table fails' );
+	like( $output, qr/holds no Units table/, 'and is named' );
+}
+
+# The root must hold a spec directory.
+{
+	my $root = tempdir( CLEANUP => 1 );
+	my ( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'a root without a spec directory fails' );
+	like( $output, qr/no spec directory/, 'and is named' );
+}
+
+# The drift gate reads the change of the branch. A lone document
+# change fails, and a register change in the same branch satisfies the
+# gate.
+{
+	my ( $root, $git, $base ) = git_fixture();
+	qx($git checkout -q -b work 2>&1);
+	die "git checkout failed\n" if $?;
+	write_file( "$root/spec/fixture.md",
+		slurp("$root/spec/fixture.md") . "\nOne more line.\n" );
+	qx($git commit -qam doc 2>&1);
+	die "git commit failed\n" if $?;
+	my ( $exit, $output ) = run_check( $root, "--drift $base" );
+	isnt( $exit, 0, 'a lone document change fails the drift gate' );
+	like( $output, qr/must also update/, 'and is named' );
+
+	write_file( "$root/spec/STATUS.md",
+		slurp("$root/spec/STATUS.md") . "\nA note.\n" );
+	qx($git commit -qam register 2>&1);
+	die "git commit failed\n" if $?;
+	( $exit, $output ) = run_check( $root, "--drift $base" );
+	is( $exit, 0, 'a register change satisfies the drift gate' )
+	    or diag($output);
+}
+
+# A code root change alone satisfies the drift gate.
+{
+	my ( $root, $git, $base ) = git_fixture();
+	qx($git checkout -q -b work 2>&1);
+	write_file( "$root/spec/fixture.md",
+		slurp("$root/spec/fixture.md") . "\nOne more line.\n" );
+	write_file( "$root/lib/code.pm", "1;\n# more\n" );
+	qx($git add -A 2>&1);
+	qx($git commit -qm both 2>&1);
+	die "git commit failed\n" if $?;
+	my ( $exit, $output ) = run_check( $root, "--drift $base" );
+	is( $exit, 0, 'a code root change satisfies the drift gate' )
+	    or diag($output);
+}
+
+# The gate reads the merge base, not the base tip. The work branch
+# changes the document only, so the gate must fail. The base branch
+# alone changes the code root, so a two-dot diff would read that
+# change and pass the gate.
+{
+	my ( $root, $git ) = git_fixture();
+	qx($git checkout -q -b work 2>&1);
+	die "git checkout failed\n" if $?;
+	write_file( "$root/spec/fixture.md",
+		slurp("$root/spec/fixture.md") . "\nOne more line.\n" );
+	qx($git commit -qam doc 2>&1);
+	die "git commit failed\n" if $?;
+
+	qx($git checkout -q main 2>&1);
+	write_file( "$root/lib/code.pm", "1;\n# more\n" );
+	qx($git commit -qam code 2>&1);
+	die "git commit failed\n" if $?;
+	my $tip = qx($git rev-parse HEAD);
+	chomp $tip;
+
+	qx($git checkout -q work 2>&1);
+	die "git checkout failed\n" if $?;
+	my ( $exit, $output ) = run_check( $root, "--drift $tip" );
+	isnt( $exit, 0, 'the gate reads the merge base, not the base tip' );
+	like( $output, qr/must also update/, 'and is named' );
+}
+
+# The contradiction state holds no leak between two plans. The check
+# reads the plans in name order. Plan 016 would see the claim of plan
+# 015, and plan 017 would see the deferral of plan 016.
+{
+	my $root = fixture();
+	write_file( "$root/plans/015-l/plan.md",
+		"# 015 \x{2014} L\n\nImplements: FIX-TWO.\n" );
+	write_file( "$root/plans/016-k/plan.md",
+		"# 016 \x{2014} K\n\nDefers: FIX-TWO.\n" );
+	write_file( "$root/plans/017-j/plan.md",
+		"# 017 \x{2014} J\n\nImplements: FIX-TWO.\n" );
+	my ( $exit, $output ) = run_check($root);
+	is( $exit, 0, 'one verb in each of three plans passes' )
+	    or diag($output);
+}
+
+# The contradiction rule compares a known unit only.
+{
+	my $root = fixture();
+	write_file( "$root/plans/018-i/plan.md",
+		"# 018 \x{2014} I\n\nImplements: FIX-NINE. Defers: FIX-NINE.\n"
+	);
+	my ( $exit, $output ) = run_check($root);
+	isnt( $exit, 0, 'an unknown unit under two verbs fails' );
+	like(
+		$output,
+		qr/Implements cites an unknown unit: FIX-NINE/,
+		'and the unknown unit is named'
+	);
+	unlike(
+		$output,
+		qr/under Implements and Defers/,
+		'and the contradiction error stays away'
+	);
+}
+
+# The header of the script names every unit of the specification
+# document, and no other. The script and spec/spec-check.md must agree.
+{
+	my $doc    = "$RealBin/../../spec/spec-check.md";
+	my $header = ( split /\nuse v5/, slurp($script), 2 )[0];
+	my %anchor =
+	    map { uc $_ => 1 } slurp($doc) =~ /<a id="(spc-[a-z0-9-]+)"><\/a>/g;
+	my %named = map { $_ => 1 } $header =~ /\b(SPC-[A-Z]+)\b/g;
+	ok( scalar keys %named, 'the header names a unit of the document' );
+	is_deeply( [ sort grep { !$anchor{$_} } keys %named ],
+		[], 'and every named unit exists' );
+	is_deeply( [ sort grep { !$named{$_} } keys %anchor ],
+		[], 'and the header names every unit' );
 }
 
 done_testing();

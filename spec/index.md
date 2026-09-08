@@ -17,8 +17,8 @@ contract, the ID conventions, and the document tables.
   example `Implements: MK-DISPATCH`.
 - A plan can exclude a rule from a unit under `Implements:` with `without`, for
   example `Implements: MK-DISPATCH without MK-DISPATCH-4`.
-- A plan must cite each unit that it touches but defers, for example
-  `Defers: WFL-CACHE`.
+- A plan must cite each unit that it touches but neither implements nor extends,
+  for example `Defers: WFL-CACHE`.
 - A plan must cite each `done` unit that it extends, for example
   `Extends: SYNC-CHECK`.
 - The change that implements a unit, or a part of one, must set the unit state
@@ -36,14 +36,15 @@ shape, the append-only numbers, the retire procedure, and the citation forms.
 Each document specifies one area of work. The code of a document prefixes the
 IDs of its units.
 
-| Code  | Document                     | Area                               |
-| ----- | ---------------------------- | ---------------------------------- |
-| SYNC  | [sync.md](sync.md)           | The sync mechanism and the packs   |
-| MK    | [make.md](make.md)           | The make interface and dispatchers |
-| WFL   | [workflows.md](workflows.md) | Actions and reusable workflows     |
-| STE   | [ste-lint.md](ste-lint.md)   | The prose lint                     |
-| REV   | [review.md](review.md)       | The review panel and the merges    |
-| INFRA | [infra.md](infra.md)         | The shared infrastructure design   |
+| Code  | Document                       | Area                               |
+| ----- | ------------------------------ | ---------------------------------- |
+| SYNC  | [sync.md](sync.md)             | The sync mechanism and the packs   |
+| MK    | [make.md](make.md)             | The make interface and dispatchers |
+| WFL   | [workflows.md](workflows.md)   | Actions and reusable workflows     |
+| STE   | [ste-lint.md](ste-lint.md)     | The prose lint                     |
+| REV   | [review.md](review.md)         | The review panel and the merges    |
+| INFRA | [infra.md](infra.md)           | The shared infrastructure design   |
+| SPC   | [spec-check.md](spec-check.md) | The specification and plan check   |
 
 ## Governance documents
 
