@@ -173,10 +173,10 @@ prose of Tooling passes the new rules before the change merges.
 
 The consumer repairs wait for the sync of each consumer.
 
-Plan 005 tells the reviewer to skip a defect that `make check` catches. The
-panel then stops its sentence-length findings. The lint hook of the review panel
-waits for plan 005 and for a measured pilot. This plan supplies its `--file`
-mode.
+REV-AGENTS-4 of `spec/review.md` tells the reviewer to skip a defect that
+`make check` catches. The panel then stops its sentence-length findings. The
+lint hook of the review panel waits for a measured pilot. This plan supplies its
+`--file` mode.
 
 ### Open questions
 

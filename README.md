@@ -14,7 +14,8 @@ contracts.
 ## Layout
 
 - `org/sync/` — files synced verbatim into every consumer: the make interface,
-  the instruction files, the scripts, the skills, and the shared dotfiles
+  the instruction files, the scripts, the skills, the review agents, and the
+  shared dotfiles
 - `perl/sync/` — files synced into the Perl consumers
 - `infra/sync/`, `web/sync/`, `python/sync/` — files synced into the consumers
   with OpenTofu code, a fuguweb site, or Python code

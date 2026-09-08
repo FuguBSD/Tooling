@@ -42,6 +42,7 @@ IDs of its units.
 | MK   | [make.md](make.md)           | The make interface and dispatchers |
 | WFL  | [workflows.md](workflows.md) | Actions and reusable workflows     |
 | STE  | [ste-lint.md](ste-lint.md)   | The prose lint                     |
+| REV  | [review.md](review.md)       | The review panel and the merges    |
 
 ## Governance documents
 
