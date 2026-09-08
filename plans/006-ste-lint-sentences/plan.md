@@ -18,13 +18,14 @@ change.
 This change adds one unit to [spec/ste-lint.md](../../spec/ste-lint.md) for the
 sentence rules. It amends STE-RULES-1, so a sentence rule can exist beside the
 three tables. It amends STE-RULES-3, so a sentence finding names the rule
-"sentence length" with the count and the limit. It amends STE-RULES-6, so a
-block can hold more than one sentence finding. It adds a rule to STE-SCOPE for
-the `--file` option. The new rule states that the caller chooses the file, and
-that STE-SCOPE-1 and STE-SCOPE-2 govern the scope walk only. The `Extends:` form
-comes from pull request 26 of this repository. It sets each register row in the
-same change. This plan names no new rule number, because a number exists only
-after the rule lands.
+"sentence length" with the count and the limit. It amends STE-RULES-6, so the
+sentence rule reports one finding for each sentence. A line can then carry more
+than one sentence finding. It adds a rule to STE-SCOPE for the `--file` option.
+The new rule states that the caller chooses the file, and that STE-SCOPE-1 and
+STE-SCOPE-2 govern the scope walk only. The `Extends:` form comes from pull
+request 26 of this repository. It sets each register row in the same change.
+This plan names no new rule number, because a number exists only after the rule
+lands.
 
 ## Decisions
 
@@ -133,9 +134,12 @@ path is absolute or relative to the working directory. A hook calls
 - A 30-word HTML comment gives none.
 - A 26-word sentence in a blockquote gives one finding.
 - A sentence whose span holds a period gives one sentence.
+- Two quoted sentences split at the period before the closing quotation mark. A
+  sentence that ends inside a parenthesis splits at the period before the
+  closing parenthesis.
 - A period inside a link target does not split.
-- `--file` on a fixture outside the scope scans it, and reports the same finding
-  as a root scan.
+- `--file` on a fixture outside the scope reports the finding. The same fixture
+  inside the scope reports the same finding under a root scan.
 - A repeated `--file` scans both files.
 
 ### The rollout
@@ -161,8 +165,9 @@ holds the rollout record.
   the lint checks the sentence rules, and asks for no sentence-length finding.
   Plan 005 rewrites the same file, and the two changes compose at the later
   merge.
-- The root copies of `CLAUDE.md` and of the review-panel skill, from
-  `scripts/sync`.
+- The root copies of `CLAUDE.md` and of the review-panel skill land by hand,
+  because `scripts/sync` refuses to run inside Tooling. `perl/t/org.t` holds
+  each root copy to the canon.
 - Delete this plan.
 
 ## Status
@@ -174,7 +179,8 @@ prose of Tooling passes the new rules before the change merges.
 
 ### What waits
 
-This plan merges after pull request 26.
+This plan builds on the merged pull request 26. `main` holds it at 9417a55, so
+no wait remains.
 
 The consumer repairs wait for the sync of each consumer. Each consumer lands the
 script and its repairs in one change, per decision 4.
