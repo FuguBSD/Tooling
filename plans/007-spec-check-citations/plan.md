@@ -1,24 +1,23 @@
 # 007 — The plan citation checks of spec-check
 
 A plan can cite one unit under `Implements:` or `Extends:` and under `Defers:`
-at the same time, and no rule of `spec-check` sees the contradiction. The review
+at the same time. No rule of `spec-check` sees the contradiction. The review
 panel found that defect by hand across three rounds of one plan review. The
-script also has no specification document: its eleven rules live in its header
-comment only, and pull request 26 of this repository names that gap and defers
-it to a separate change. This plan adds the contradiction check and the
-document. The org pack owns the script, so this repository lands the change
-first.
+script also has no specification document: its twelve rules live in its header
+comment only. Pull request 26 of this repository names that gap and defers it to
+a separate change. This plan adds the contradiction check and the document. The
+org pack owns the script, so this repository lands the change first.
 
 ## Citations
 
 Implements: none. The design units do not exist yet.
 
-This change adds one document to the specification for `spec-check`, with one
-unit for each rule group of the script header: the links, the documents, the
-register, the citations, the schedule, the plans, and the drift gate. The plan
-unit holds the new check. The change sets each register row in the same change.
-This plan names no new rule number, because a number exists only after the rule
-lands.
+This change adds one document to the specification for `spec-check`. The
+document holds one unit for each rule group of the script header. The groups are
+the links, the documents, the register, the citations, the schedule, the plans,
+and the drift gate. The plan unit holds the new check. The change sets each
+register row in the same change. This plan names no new rule number, because a
+number exists only after the rule lands.
 
 ## Decisions
 
@@ -36,11 +35,11 @@ without approval.
 ### The contradiction between the verbs
 
 In one plan review of 2026-08-30, round three reported "`Defers: LIC-LIC`
-contradicts step 2 (the licensing table row) and step 10", round four reported
+contradicts step 2 (the licensing table row) and step 10". Round four reported
 "the open question states 'LIC-LIC stays open', which contradicts line 8
-`Implements: LIC-LIC`", and round five reported "`Implements: LIC-LIC`, but no
-step adds a licensing row". Three rounds of three reviewers found a defect that
-a one-line check catches in the first.
+`Implements: LIC-LIC`". Round five reported "`Implements: LIC-LIC`, but no step
+adds a licensing row". Three rounds of three reviewers found a defect that a
+one-line check catches in the first.
 
 ### Pull request 26 closes the wrapped citation
 
@@ -57,8 +56,9 @@ The specification documents of this repository cover the sync mechanism, the
 make interface, the workflows, and the prose lint. No unit covers `spec-check`.
 The script header lists its rules, and the synced `spec/CLAUDE.md` names the
 check in one sentence. Pull request 26 recorded the gap as a rejection: "no
-specification unit owns spec-check, so the register has no row for rule 12; that
-holds for rules 1 to 11 too, and a unit for the script is a separate change."
+specification unit owns spec-check, so the register has no row for rule 12". The
+rejection continues: "that holds for rules 1 to 11 too, and a unit for the
+script is a separate change."
 
 ## Design
 
@@ -67,34 +67,39 @@ holds for rules 1 to 11 too, and a unit for the script is a separate change."
 The check reads each citation of a plan with the block reader of pull
 request 26. It collects the unit tokens under `Defers:`, and the unit tokens
 under `Implements:` and `Extends:`. A token in both sets is an error that names
-the plan and the unit. A rule token under `Implements:` maps to its unit for the
-comparison, so `Implements: DOC-A without DOC-A-2` and `Defers: DOC-A` conflict
-too. The check runs in every mode, because it reads the plan text only.
+the plan and the unit. The check compares unit tokens. A `without` clause names
+a rule and leaves the unit token in place. The check runs in every mode, because
+it reads the plan text only.
 
 ### The document
 
-`spec/spec-check.md` states the rules of the script header as units, with the
-rule text of the header as the rule text of the document: the links, the
-documents, the register, the citations, the schedule, the plans, and the drift
-gate. The plan unit holds rule 10, rule 12, and the contradiction check.
-`spec/index.md` gains the row. The register lists each unit as `done`, except
-the plan unit, which is `partial` until the check lands.
+`spec/spec-check.md` groups the twelve rules of the script header into units,
+one for each rule group. The document is the one place for the rule text of the
+script. The header keeps the rule numbers and a pointer to the document. For the
+citation forms, the document points at the synced `spec/CLAUDE.md` and repeats
+nothing. The plan unit holds rule 10, rule 12, and the contradiction check.
+`spec/index.md` gains the row. The register lists every unit as `done`, because
+the implementation lands the document and the check together.
 
 ### The tests
 
-`perl/t/spec-check.t` gains fixtures: a plan that cites one unit under
-`Implements:` and `Defers:` fails with an error that names the unit; a plan that
-cites a `done` unit under `Extends:` and `Defers:` fails the same way; a plan
-with a rule under `Implements:` and its unit under `Defers:` fails; a plan with
-disjoint sets passes.
+`perl/t/spec-check.t` gains three fixtures. A plan that cites one unit under
+`Implements:` and `Defers:` fails with an error that names the unit. A plan that
+cites a `done` unit under `Extends:` and `Defers:` fails the same way. A plan
+with disjoint sets passes.
 
 ## Work
 
-- `org/sync/scripts/spec-check`: the contradiction check, and the header line
-  for it.
+- `org/sync/scripts/spec-check`: the contradiction check, and the header change:
+  the rule numbers and a pointer to the document.
 - `perl/t/spec-check.t`: the fixtures.
 - `spec/spec-check.md` and `spec/index.md`: the new document and its row.
-- `spec/STATUS.md`: the rows.
+- `org/sync/spec/CLAUDE.md`: the citation forms state that a unit sits under one
+  verb only.
+- `org/sync/plans/CLAUDE.md`: a pointer to that form.
+- `spec/CLAUDE.md` and `plans/CLAUDE.md`: the root copies of both, by hand.
+- `spec/STATUS.md`: the rows, and a Code roots row for `spec-check.md` with
+  `org/sync/scripts/spec-check` and `perl/t/spec-check.t`.
 - Delete this plan.
 
 ## Status
