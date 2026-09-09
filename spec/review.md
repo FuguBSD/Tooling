@@ -11,12 +11,12 @@ one procedure.
 ## The bounded loop
 
 A round reviews one committed diff with three independent reviewers. The ledger
-`explore/review/ledger.md` records each finding, and `explore/` is gitignored in
+`scratch/review/ledger.md` records each finding, and `scratch/` is gitignored in
 every consumer.
 
 - **REV-LOOP-1** — The main session must run `make check </dev/null` and must
   commit every change before a round. Before round one it must write
-  `git diff <base>...HEAD` to `explore/review/base.diff`.
+  `git diff <base>...HEAD` to `scratch/review/base.diff`.
 - **REV-LOOP-2** — A round must launch three `reviewer` agents with one fixed
   prompt of the skill. The prompt must hold the repository path, the diff path,
   the ledger path, and the round number.
@@ -35,7 +35,7 @@ every consumer.
   after round three. A fixer that commits nothing also stops the loop, and the
   main session must write no fix diff. Round three must run no fixer.
 - **REV-LOOP-8** — The main session must dispatch. After the first launch of a
-  round it must edit no repository file. A file under `explore/` is scratch
+  round it must edit no repository file. A file under `scratch/` is scratch
   space, and not a repository file.
 - **REV-LOOP-9** — Each ledger line must hold the finding number, the round, and
   the file and the line. It must also hold the severity, each member that
@@ -49,7 +49,7 @@ every consumer.
   `open` entry, and each quorum finding that no fixer fixed. The pull request
   body must hold the residue, and the operator must decide it.
 - **REV-LOOP-12** — After the fixer of round `<N>` commits, the main session
-  must write `git diff <round commit>...HEAD` to `explore/review/fix-<N>.diff`.
+  must write `git diff <round commit>...HEAD` to `scratch/review/fix-<N>.diff`.
   Round `<N+1>` must read that file as its diff path.
 
 <a id="rev-agents"></a>
