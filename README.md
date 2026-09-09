@@ -1,69 +1,26 @@
 # Tooling
 
 The shared build, dist, release and agent tooling of the FuguBSD repositories.
+One canonical copy of every shared tool lives here. A consumer references the
+actions and the reusable workflows at `@main`, and holds verbatim copies of the
+synced files. A CI drift gate verifies the copies.
 
-One canonical copy of every shared tool lives here. A consumer repository
-references the composite actions and the reusable workflows at `@main`, and it
-holds verbatim copies of the synced files. A CI drift gate verifies the copies.
-Each consumer describes its own identity in one `.toolingrc` file at its root.
-
-A bad push here breaks the next CI run of every consumer. Run `make check`
-before every commit. The specification in [spec/](spec/index.md) states the
-contracts.
-
-## Layout
-
-- `org/sync/` — files synced verbatim into every consumer: the make interface,
-  the instruction files, the scripts, the skills, the review agents, and the
-  shared dotfiles
-- `perl/sync/` — files synced into the Perl consumers
-- `infra/sync/`, `web/sync/`, `python/sync/` — files synced into the consumers
-  with OpenTofu code, a fuguweb site, or Python code
-- `GNUmakefile`, `mk/` — the root copies of the dispatcher and the fragments
-- `actions/`, `perl/actions/`, `python/actions/` — the composite actions
-- `.github/workflows/` — the reusable workflows: `perl-build.yml`,
-  `perl-release.yml`, and `web-publish.yml`
-- `scripts/sync` — copies the selected packs into a consumer; `--check` is the
-  CI drift gate
-- `perl/t/` — the tests of the canonical tooling
-
-## Consumer usage
-
-From a consumer repository root, with this repository as a sibling checkout:
-
-    ../Tooling/scripts/sync           # copy the shared files in
-    ../Tooling/scripts/sync --check   # report drift, change nothing
-
-A consumer selects its packs with `sync.pack` lines in `.toolingrc`:
-
-- every consumer takes `org`
-- a Perl repository adds `perl`
-- a repository with OpenTofu code adds `infra`
-- a repository with a fuguweb site adds `web`
-- a repository with Python code adds `python`
-
-A consumer's `check.yml` runs the same `--check` as a drift gate. A consumer's
-`release.yml`, `build.yml`, and `publish.yml` are thin callers of the reusable
-workflows.
+A consumer selects its packs in one `.toolingrc` at its root, and `scripts/sync`
+copies the packs in. A bad push here breaks the next CI run of every consumer,
+so run `make check` before every commit. The specification in
+[spec/](spec/index.md) states the contracts.
 
 ## Commands
 
-    make deps-test   # install Perl::Critic and Perl::Tidy
-    make setup       # install the development tools into .venv
-    make check       # lint + format + test + spec-check + ste-lint + gitleaks + lock-py
-    make format-md   # Markdown/JSON/YAML formatting
-    prove -l perl/t/sync.t   # one test file
-
-The python gates run uv, the Markdown gates run prettier through bunx, and the
-gitleaks gate runs gitleaks. The operator installs uv and bun, for example from
-Homebrew, and no deps manifest provides them. A deps manifest provides gitleaks,
-in the `tool` environment (MK-GITLEAKS-4).
+```sh
+make deps-test   # install Perl::Critic and Perl::Tidy
+make setup       # install the development tools into .venv
+make check       # run every gate; run it before each commit
+make test        # run the tests of the canonical tooling
+make format-fix  # fix the Perl, Python, Markdown, JSON and YAML formatting
+```
 
 ## Commit scopes
 
 `sync`, `deps`, `dist`, `ftp`, `spec-check`, `ste-lint`, `actions`, `workflows`,
 `org`, `perl`, `python`, `spec`.
-
-## License
-
-ISC. See [LICENSE](LICENSE).
