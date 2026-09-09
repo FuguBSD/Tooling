@@ -19,8 +19,3 @@ make check       # run every gate; run it before each commit
 make test        # run the tests of the canonical tooling
 make format-fix  # fix the Perl, Python, Markdown, JSON and YAML formatting
 ```
-
-## Commit scopes
-
-`sync`, `deps`, `dist`, `ftp`, `spec-check`, `ste-lint`, `actions`, `workflows`,
-`org`, `perl`, `python`, `spec`.
