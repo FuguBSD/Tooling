@@ -30,9 +30,9 @@ In scope:
 
 Out of scope:
 
-- The pragma of `scripts/dist` itself. The script runs at build time on the CI
-  perl, and never on a consumer host. Fugu plan 008 records the tension with a
-  test that runs the script on perl 5.34.
+- The pragma of `scripts/dist` itself. The script runs where `make dist` runs:
+  on a developer host, or in CI. It never runs on a host that installs the
+  distribution.
 - The floor of any consumer. Each consumer sets its own key, or keeps the
   default.
 
@@ -49,13 +49,14 @@ generated files. The floor of a consumer changes in a change of that consumer.
 **One shape for the value.** The value takes the form that `MIN_PERL_VERSION`
 and the META prerequisites share: `5.034`, `5.036`, or `5.038`. The script must
 refuse another shape with a message that names the key, as it refuses an unknown
-key. A `v5.34` or a `5.34` would stamp a value that ExtUtils::MakeMaker reads
-differently from CPAN::Meta.
+key. Both readers parse the value through version.pm. A `5.34` means perl 5.340
+in both, so no perl satisfies it. A `v5.34` means 5.034 in both, but one shape
+keeps the check simple, so the rule refuses it.
 
 **One fact, one place.** The rule sheet of the perl pack tells a writer that the
-README names the floor. After this plan `.toolingrc` names it for the build, and
-the README states it for the reader. The rule sheet sentence points at the key,
-so a writer reads the floor where the build reads it.
+README names the floor. After this plan `.toolingrc` alone names it. The rule
+sheet sentence points at the key, so a writer reads the floor where the build
+reads it.
 
 ## The interface contract
 
@@ -67,7 +68,7 @@ the shape `5.0NN`. It stamps the value into `MIN_PERL_VERSION` and into the
 The header comment of the script lists the key in its table of `dist.` keys.
 
 The rule sheet sentence "The README names that floor" changes. It becomes "The
-`dist.perl` key of `.toolingrc` names that floor, and the README states it".
+`dist.perl` key of `.toolingrc` names that floor".
 
 The new rule reads as follows. A plan names no rule number, because a number
 exists after the rule lands.
@@ -103,11 +104,9 @@ staged tree. It gains:
 ## Acceptance
 
 - `make check` passes.
-- The four Perl consumers sync the two files. Each `make dist` gives the
-  generated files of today, byte for byte, because none sets the key.
 - SYNC-IDENTITY stays `done`, and its note names `dist.t`.
 - The change deletes this plan.
 
 ## Open questions
 
-None. FuguBench sets `dist.perl 5.034` in a change of its own, after the sync.
+None.
