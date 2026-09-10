@@ -31,8 +31,8 @@ In scope:
 Out of scope:
 
 - The pragma of `scripts/dist` itself. The script runs where `make dist` runs:
-  on a developer host, or in CI. It never runs on a host that installs the
-  distribution.
+  on a developer host, or in CI. It does not ship in the tarball, so its pragma
+  binds no installing perl.
 - The floor of any consumer. Each consumer sets its own key, or keeps the
   default.
 
@@ -54,7 +54,8 @@ in both, so no perl satisfies it. A `v5.34` means 5.034 in both, but one shape
 keeps the check simple, so the rule refuses it.
 
 **One fact, one place.** The rule sheet of the perl pack tells a writer that the
-README names the floor. After this plan `.toolingrc` alone names it. The rule
+README names the floor. After this plan `.toolingrc` names the floor when it
+holds the key, and the default `5.036` of the script applies otherwise. The rule
 sheet sentence points at the key, so a writer reads the floor where the build
 reads it.
 
@@ -68,7 +69,7 @@ the shape `5.0NN`. It stamps the value into `MIN_PERL_VERSION` and into the
 The header comment of the script lists the key in its table of `dist.` keys.
 
 The rule sheet sentence "The README names that floor" changes. It becomes "The
-`dist.perl` key of `.toolingrc` names that floor".
+`dist.perl` key of `.toolingrc` names that floor, and the default is `5.036`".
 
 The new rule reads as follows. A plan names no rule number, because a number
 exists after the rule lands.
