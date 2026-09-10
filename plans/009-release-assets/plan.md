@@ -47,9 +47,9 @@ manifest to a file name, and the release directory holds unique names.
 
 **The guard runs before the key.** The name guard of WFL-SIGN-10 covers the
 distribution name today. The same guard must cover each asset name: whitespace
-cannot occur inside one name, and a parenthesis must not. An absent file is an
-error of the build, and the workflow must stop on it before the signing step
-reads a secret.
+cannot occur inside one name, and a parenthesis or a `/` must not. An absent
+file is an error of the build, and the workflow must stop on it before the
+signing step reads a secret.
 
 **Each value reaches the shell through the environment.** WFL-SIGN-5 holds. The
 input reaches the guard step and the signing step as `DIST_ASSETS`, with the
@@ -62,8 +62,8 @@ workflow attaches the extra assets with no manifest, as it attaches the
 tarballs.
 
 **The default changes nothing.** The input defaults to the empty string. The
-four callers of today name no asset, and their releases keep every byte of their
-manifests.
+three callers of today name no asset, and their releases keep every byte of
+their manifests.
 
 ## The interface contract
 
@@ -71,8 +71,8 @@ The `workflow_call` inputs gain `assets`: an optional string, default empty, a
 whitespace-separated list of file names under `build/`.
 
 A step "Check the release assets" runs after the build step. It reads
-`DIST_ASSETS`, and for each name it holds the name to the guard of WFL-SIGN-10
-and holds `build/<name>` to an existing regular file. It writes the full
+`DIST_ASSETS`. It holds each name to the guard of WFL-SIGN-10, refuses a `/` in
+a name, and holds `build/<name>` to an existing regular file. It writes the full
 attachment list to a step output: the two tarballs, then each asset.
 
 The signing step adds one `SHA256 (<name>) = <digest>` line for each asset,
@@ -81,12 +81,11 @@ inside the loop that names the two tarballs, before the sort.
 The release step attaches the list of the check step, and the manifest pair when
 the signing step signed.
 
-The new rules read as follows. A plan names no rule number, because a number
-exists after the rule lands.
+The new rules read as follows. A rule number exists after the rule lands.
 
 - The rule of WFL-SIGN: "The manifest must name each extra asset that the caller
   names in the `assets` input, beside the two tarballs. The name guard of
-  WFL-SIGN-10 covers each asset name."
+  WFL-SIGN-10 covers each asset name, and a name must not hold a `/`."
 - The rule of WFL-REUSE: "The Perl release workflow must accept an `assets`
   input: a whitespace-separated list of file names under `build/`. `make dist`
   of the caller writes each file, and the workflow attaches each one. The
@@ -108,8 +107,8 @@ gains:
 
 - The `assets` input exists, it is optional, and its default is empty.
 - The check step reads `DIST_ASSETS` from `env:`, and it names no secret.
-- The check step refuses a name with whitespace or a parenthesis, in the `case`
-  shape of the name guard. It refuses an absent file.
+- The check step refuses a name with whitespace, a parenthesis, or a `/`, in the
+  `case` shape of the name guard. It refuses an absent file.
 - The signing loop names `DIST_ASSETS` beside the two tarball names, so each
   asset gets a manifest line before the sort.
 - The release step attaches the output of the check step, and the manifest pair
