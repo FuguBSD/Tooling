@@ -43,6 +43,10 @@ packs, each file at the same relative path.
   consumer README.
 - **SYNC-IDENTITY-3** — The synced root `CLAUDE.md` must import the consumer
   README with an `@README.md` line.
+- **SYNC-IDENTITY-4** — A Perl consumer can name the perl floor of its
+  distribution under `dist.perl` in `.toolingrc`, in the form `5.0NN`. The dist
+  build must stamp that floor into the generated `Makefile.PL` and `META.json`,
+  and must refuse a value outside that form. The default is `5.036`.
 
 <a id="sync-marker"></a>
 
