@@ -122,6 +122,11 @@ EOF
 		qr/ABSTRACT\s+=> 'fix things with one tool'/,
 		'the abstract carries its spaces'
 	);
+	like(
+		$mfpl,
+		qr/MIN_PERL_VERSION\s+=> '5\.036'/,
+		'a fixture without dist.perl takes the default floor'
+	);
 	like( $mfpl, qr{'bin/fix'},        'the executable ships' );
 	like( $mfpl, qr/'Net::SSH2' => 0/, 'the first prereq ships' );
 	like( $mfpl, qr/'URI' => 0/,       'the second prereq ships' );
@@ -179,6 +184,10 @@ qr{'share/fix/data' => '\$\(INST_LIB\)/auto/share/dist/App-Fix/fix/data'},
 			'META requires the prereqs' );
 		ok( $requires->accepts_module( 'perl', '5.036' ),
 			'META requires the perl floor' );
+		ok(
+			!$requires->accepts_module( 'perl', '5.034' ),
+			'and the default refuses the perl below it'
+		);
 	}
 
 	# The MANIFEST lists every file of the tree, itself included.
@@ -259,6 +268,42 @@ EOF
 	like( $output, qr/Fix-0\.0\.0\.tar\.gz/, 'and counts as absent' );
 }
 
+# A dist.perl floor stamps into both generated files.
+{
+	my $dir = fixture(<<'EOF');
+dist.name     Fix
+dist.module   Fix
+dist.abstract a lean fixture
+dist.author   Dick Olsson <hi@senzilla.io>
+dist.testdir  t/fix
+dist.perl     5.034
+EOF
+	my ( $exit, $output ) = run_in( $dir, '--version 1.0.0' );
+	is( $exit, 0, 'a fixture with dist.perl builds' ) or diag($output);
+
+	my $tree = unpack_dist( $dir, 'Fix', '1.0.0' );
+	ok( defined $tree, 'the tarball unpacks' ) or last;
+
+	like(
+		slurp("$tree/Makefile.PL"),
+		qr/MIN_PERL_VERSION\s+=> '5\.034'/,
+		'the floor reaches MIN_PERL_VERSION'
+	);
+
+	require CPAN::Meta;
+	my $meta = eval { CPAN::Meta->load_file("$tree/META.json") };
+	ok( defined $meta, 'META.json ships and parses' ) or diag($@);
+	if ( defined $meta ) {
+		my $requires =
+		    $meta->effective_prereqs->requirements_for( 'runtime',
+			'requires' );
+		ok( $requires->accepts_module( 'perl', '5.034' ),
+			'META accepts the floor' );
+		ok( !$requires->accepts_module( 'perl', '5.032' ),
+			'and refuses the perl below it' );
+	}
+}
+
 # Configuration errors fail closed, before anything is staged.
 my %BAD = (
 	'a missing .toolingrc' => undef,
@@ -313,6 +358,48 @@ EOF
 	my ( $exit, $output ) = run_in( $dir, '--version nonsense' );
 	isnt( $exit, 0, 'a bad version exits non-zero' );
 	like( $output, qr/not dotted-decimal/, 'and says why' );
+}
+
+# A dist.perl outside the 5.0NN shape dies before anything is
+# staged. Both readers take 5.34 as perl 5.340, which no perl
+# satisfies, and one shape keeps the check simple. The last two
+# values pin the anchors of the shape check: v5.034 passes a check
+# without ^, and 5.0360 passes a check without \z.
+for my $bad (qw(5.34 v5.34 v5.034 5.0360)) {
+	my $dir = fixture(<<"EOF");
+dist.name     Fix
+dist.module   Fix
+dist.abstract a lean fixture
+dist.author   Dick Olsson <hi\@senzilla.io>
+dist.testdir  t/fix
+dist.perl     $bad
+EOF
+	my ( $exit, $output ) = run_in( $dir, '--version 1.0.0' );
+	isnt( $exit, 0, "dist.perl $bad exits non-zero" );
+	like(
+		$output,
+		qr/'dist\.perl' is not in the form/,
+		'and the message names the shape'
+	);
+	ok( !-d "$dir/build", 'and nothing is staged' );
+}
+
+# A duplicate dist.perl fails, as a duplicate of another single key
+# does.
+{
+	my $dir = fixture(<<'EOF');
+dist.name     Fix
+dist.module   Fix
+dist.abstract a lean fixture
+dist.author   Dick Olsson <hi@senzilla.io>
+dist.testdir  t/fix
+dist.perl     5.036
+dist.perl     5.034
+EOF
+	my ( $exit, $output ) = run_in( $dir, '--version 1.0.0' );
+	isnt( $exit, 0, 'a duplicate dist.perl exits non-zero' );
+	like( $output, qr/duplicate 'dist\.perl'/, 'and says why' );
+	ok( !-d "$dir/build", 'and nothing is staged' );
 }
 
 done_testing();
