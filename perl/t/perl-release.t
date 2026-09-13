@@ -48,7 +48,8 @@ sub _step ( $yml, $name )
 plan skip_all => 'no perl-release workflow' unless -f $workflow;
 my $yml = _slurp($workflow);
 
-my $SIGN = _step( $yml, 'Sign the release assets' );
+my $SIGN   = _step( $yml, 'Sign the release assets' );
+my $ASSETS = _step( $yml, 'Check the release assets' );
 
 subtest 'the signing step reads the active slot' => sub {
 	ok( $SIGN, 'the signing step is there' ) or return;
@@ -230,9 +231,175 @@ subtest 'the manifest takes the name it is given' => sub {
 	);
 };
 
+subtest 'a caller can name a list of release assets' => sub {
+
+	# The three callers of today name no asset. A required input,
+	# or a default that held a name, would change every release of
+	# the organization.
+	my ($input) = $yml =~ /^ {6}assets:\n((?:^ {8}\N+\n)+)/m;
+	ok( $input, 'the workflow takes an assets input' ) or return;
+
+	like( $input, qr/^ {8}required: false$/m, 'the input is optional' );
+	like( $input, qr/^ {8}type: string$/m,    'it takes a list of names' );
+	like( $input, qr/^ {8}default: ""$/m,     'and its default is empty' );
+};
+
+subtest 'the check step reads the assets before the key' => sub {
+	ok( $ASSETS, 'the check step is there' ) or return;
+
+	# The list reaches the shell through the environment, under a
+	# name that carries the scope of the workflow. WFL-ACTIONS-9
+	# asks for the prefix, because no test holds a shared workflow
+	# to the fragments of a consumer.
+	like(
+		$ASSETS,
+		qr/DIST_ASSETS:\s*\$\{\{\s*inputs\.assets\s*\}\}/,
+		'the list reaches the step under a free name'
+	);
+	unlike( $ASSETS, qr/secrets\./, 'and no secret reaches it' );
+
+	# A bad name and an absent file are both faults of the build.
+	# The run must stop on one before the signing step reads a
+	# key, so the step order carries the guard.
+	my $build_at = index $yml, '- name: Build the distribution tarball';
+	my $check_at = index $yml, '- name: Check the release assets';
+	my $sign_at  = index $yml, '- name: Sign the release assets';
+	ok( $build_at < $check_at, 'the build writes the files first' );
+	ok( $check_at < $sign_at,  'and the check runs before the key' );
+
+	# Pathname expansion must not run before the name guard. A
+	# glob that expands first passes as the file that it matches,
+	# and the guard never reads the glob. WFL-SIGN-13 states it.
+	#
+	# The step holds two loops over $DIST_ASSETS, and the guard
+	# belongs to the first one. $gap spans text that holds no
+	# loop keyword, so the pattern reads set -f, the loop, and
+	# the positive rule of that loop, with no loop between them.
+	my $gap   = qr{(?:(?!for name in).)*}s;
+	my $plain = qr{\Q-* | *[!A-Za-z0-9._-]*)\E};
+	like(
+		$ASSETS,
+		qr{\n\s*set -f\n${gap}for name in \$DIST_ASSETS${gap}$plain}s,
+		'the step turns pathname expansion off before the name guard'
+	);
+
+	# One positive rule, not a list of prohibitions: a plain file
+	# name passes, and every other name fails. That covers
+	# whitespace, a parenthesis, a / and a glob character.
+	# WFL-SIGN-13 states the rule.
+	like( $ASSETS, $plain,
+		'the step takes a plain file name and refuses the rest' );
+
+	# WFL-SIGN-14. The release makes these four files itself, so a
+	# caller that names one must fail the check, never the upload.
+	like(
+		$ASSETS,
+		qr{SHA256 \| SHA256\.sig},
+		'it refuses the manifest and its signature'
+	);
+	like(
+		$ASSETS,
+		qr{\| "\$DIST_NAME-\$DIST_VERSION\.tar\.gz"},
+		'and the versioned tarball that it builds'
+	);
+	like(
+		$ASSETS,
+		qr{\| "\$DIST_NAME\.tar\.gz"},
+		'and the stable one beside it'
+	);
+
+	# WFL-SIGN-17. gh release create refuses a second upload of one
+	# name, so a repeat must stop at the check step. A guard that
+	# reads an empty accumulator refuses nothing, so the three
+	# lines must stand in this order.
+	like(
+		$ASSETS,
+		qr{seen="".*case " \$seen " in.*seen="\$seen \$name"}s,
+		'it starts seen empty, reads it, and adds each name'
+	);
+	like(
+		$ASSETS,
+		qr{the assets input names build/\$name},
+		'and refuses a name that the input holds twice'
+	);
+
+	like(
+		$ASSETS,
+		qr{if \[ ! -f "build/\$name" \]},
+		'and a name that the build wrote no file for'
+	);
+	like( $ASSETS, qr/exit 1/, 'and each refusal stops the run' );
+
+	# The release step takes one list, and the two tarballs stand
+	# first in it. A caller that names no asset gets those two.
+	like(
+		$ASSETS,
+		qr{echo "build/\$DIST_NAME-\$DIST_VERSION\.tar\.gz"},
+		'the list holds the versioned tarball'
+	);
+	like(
+		$ASSETS,
+		qr{echo "build/\$DIST_NAME\.tar\.gz"},
+		'and the stable one'
+	);
+	like( $ASSETS, qr{echo "build/\$name"}, 'and each asset after them' );
+	like(
+		$ASSETS,
+		qr{>> "\$GITHUB_OUTPUT"},
+		'and the step writes the list to an output'
+	);
+};
+
+subtest 'the manifest names each asset of the caller' => sub {
+	ok( $SIGN, 'the signing step is there' ) or return;
+
+	like(
+		$SIGN,
+		qr/DIST_ASSETS:\s*\$\{\{\s*inputs\.assets\s*\}\}/,
+		'the list reaches the signing step too'
+	);
+
+	# One loop writes every line, so an asset takes the line form
+	# of the tarballs. The loop stands on two lines: a lost
+	# continuation would leave the stable name as a command of its
+	# own.
+	like(
+		$SIGN,
+		qr{
+			for \s name \s in
+			\s "\$DIST_NAME-\$DIST_VERSION\.tar\.gz"
+			\s* \\ \n \s+ "\$DIST_NAME\.tar\.gz"
+			\s \$DIST_ASSETS; \s do
+		}x,
+		'and the loop names the list beside the two tarballs'
+	);
+
+	# A line that the sort never read would leave two runs with
+	# two manifests of one release.
+	like(
+		$SIGN,
+		qr{\$DIST_ASSETS.*sort -o build/SHA256}s,
+		'the loop runs before the sort'
+	);
+
+	# The loop is the one writer of the manifest. A caller that
+	# names no asset therefore gets the manifest of today, line
+	# for line.
+	my $writes = () = $SIGN =~ m{>> build/SHA256}g;
+	is( $writes, 1, 'and no other line reaches the manifest' );
+};
+
 subtest 'the release attaches the manifest pair' => sub {
 	my $release = _step( $yml, 'Release to GitHub' );
 	ok( $release, 'the release step is there' ) or return;
+
+	# The check step held each name, so the release attaches the
+	# list that it wrote and no name of its own.
+	like(
+		$release,
+		qr/steps\.assets\.outputs\.files/,
+		'the list of the check step reaches the release'
+	);
 
 	like( $release, qr{build/SHA256'},      'SHA256 reaches the release' );
 	like( $release, qr{build/SHA256\.sig'}, 'and its signature' );

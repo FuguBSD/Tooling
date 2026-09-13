@@ -35,6 +35,11 @@ on:
         required: false
         type: string
         default: ""
+      assets:
+        description: "Extra files under build/ to attach, whitespace-separated"
+        required: false
+        type: string
+        default: ""
       pause:
         description: "Upload the tarball to PAUSE"
         required: false
@@ -101,6 +106,91 @@ jobs:
           cp "build/$DIST_NAME-$DIST_VERSION.tar.gz" \
             "build/$DIST_NAME.tar.gz"
 
+      # A caller can name a list of files for the release, and
+      # make dist of the caller writes each one under build/. This
+      # step reads the names before the signing step reads the key,
+      # so a bad name and an absent file both stop the run before a
+      # secret is in the environment of any step.
+      #
+      # Every name here carries the DIST_ prefix, as the build step
+      # above does. WFL-ACTIONS-9 states the rule.
+      - name: Check the release assets
+        id: assets
+        shell: bash
+        env:
+          DIST_NAME: ${{ inputs.dist }}
+          DIST_VERSION: ${{ steps.version.outputs.version }}
+          DIST_ASSETS: ${{ inputs.assets }}
+        run: |
+          # The input is a whitespace-separated list, so the word
+          # split of the shell reads it. set -f turns pathname
+          # expansion off, so each loop below reads the words of the
+          # input. A glob that expands first passes as the file that
+          # it matches. seen holds each name that the loop took
+          # already.
+          set -f
+          seen=""
+          # shellcheck disable=SC2086
+          for name in $DIST_ASSETS; do
+            # A plain file name and nothing else: a letter, a
+            # digit, a period, a hyphen and an underscore. One
+            # positive rule refuses whitespace, a parenthesis, a /
+            # and a glob character together. The manifest names a
+            # file and never a path. The release publishes the bare
+            # name, and a download keeps it. tar and unzip read a
+            # leading hyphen as an option, as SYNC-DOWNLOAD-10
+            # states.
+            case "$name" in
+              -* | *[!A-Za-z0-9._-]*)
+                echo "release: the asset name is no plain file" \
+                  "name: $name" >&2
+                exit 1 ;;
+            esac
+
+            # The release makes these four files itself. A caller
+            # that names one of them gives the manifest a second
+            # line, and the release a second upload of one name.
+            case "$name" in
+              SHA256 | SHA256.sig \
+                | "$DIST_NAME-$DIST_VERSION.tar.gz" \
+                | "$DIST_NAME.tar.gz")
+                echo "release: the release makes build/$name" \
+                  "itself" >&2
+                exit 1 ;;
+            esac
+
+            # gh release create refuses a second upload of one
+            # name, so the release breaks on a repeat. The rule
+            # above holds each name to a plain file name, so this
+            # match is a literal one.
+            case " $seen " in
+              *" $name "*)
+                echo "release: the assets input names build/$name" \
+                  "twice" >&2
+                exit 1 ;;
+            esac
+            seen="$seen $name"
+
+            if [ ! -f "build/$name" ]; then
+              echo "release: build/$name is absent" >&2
+              exit 1
+            fi
+          done
+
+          # The release step takes one list: the two tarballs, and
+          # then each asset. A caller that names no asset gets the
+          # two tarballs alone.
+          {
+            echo 'files<<END_OF_LIST'
+            echo "build/$DIST_NAME-$DIST_VERSION.tar.gz"
+            echo "build/$DIST_NAME.tar.gz"
+            # shellcheck disable=SC2086
+            for name in $DIST_ASSETS; do
+              echo "build/$name"
+            done
+            echo 'END_OF_LIST'
+          } >> "$GITHUB_OUTPUT"
+
       # The signify tier of scripts/deps reads a manifest beside the
       # download, and it keys that manifest on the file name. A
       # consumer can name the versioned tarball or the stable one, so
@@ -133,6 +223,7 @@ jobs:
           KEY_B: ${{ secrets.SIGNIFY_RELEASE_KEY_B }}
           DIST_NAME: ${{ inputs.dist }}
           DIST_VERSION: ${{ steps.version.outputs.version }}
+          DIST_ASSETS: ${{ inputs.assets }}
         run: |
           set -o pipefail
 
@@ -180,7 +271,13 @@ jobs:
           # on its own, so no field of a sha256sum line has to survive
           # a split.
           : > build/SHA256
-          for name in "$DIST_NAME-$DIST_VERSION.tar.gz" "$DIST_NAME.tar.gz"; do
+          # The check step above held each asset name to the guard,
+          # so the word split here takes a name that the manifest
+          # carries. That guard leaves no glob character, so pathname
+          # expansion finds nothing here. An empty list adds no line.
+          # shellcheck disable=SC2086
+          for name in "$DIST_NAME-$DIST_VERSION.tar.gz" \
+            "$DIST_NAME.tar.gz" $DIST_ASSETS; do
             digest=$(sha256sum "build/$name" | sed 's|^\\||' \
               | cut -d' ' -f1)
             case "$digest" in
@@ -214,8 +311,7 @@ jobs:
           tag: ${{ steps.version.outputs.tag }}
           title: ${{ inputs.name }} ${{ steps.version.outputs.version }}
           files: |
-            build/${{ inputs.dist }}-${{ steps.version.outputs.version }}.tar.gz
-            build/${{ inputs.dist }}.tar.gz
+            ${{ steps.assets.outputs.files }}
             ${{ steps.sign.outputs.signed == 'yes' && 'build/SHA256' || '' }}
             ${{ steps.sign.outputs.signed == 'yes' && 'build/SHA256.sig' || '' }}
           token: ${{ github.token }}

@@ -61,6 +61,10 @@ workflow, the setup-perl cache, the setup-uv cache, and the gitleaks gate.
   GitHub raises no push event for a tag that `GITHUB_TOKEN` pushes. The input
   must select both the checkout and the version. Without it the workflow must
   read the ref of the push.
+- **WFL-REUSE-5** — The Perl release workflow must accept an `assets` input: a
+  whitespace-separated list of file names under `build/`. `make dist` of the
+  caller writes each file, and the workflow attaches each one. The default is
+  empty.
 - **WFL-REUSE-3** — `environment: release` must stay in the callee job, and
   `permissions` and `secrets: inherit` must stay in the caller.
 
@@ -97,6 +101,23 @@ organization.
   whitespace or a parenthesis. The manifest reader of a consumer takes neither.
 - **WFL-SIGN-11** — The package install must run in its own step, before a
   secret reaches the environment of any step.
+- **WFL-SIGN-12** — The manifest must name each extra asset that the caller
+  names in the `assets` input, beside the two tarballs.
+- **WFL-SIGN-13** — An asset name must hold a letter, a digit, a period, a
+  hyphen or an underscore only. A name must not begin with a hyphen. The release
+  publishes the bare name, and a download keeps it. `tar` and `unzip` read a
+  leading hyphen as an option, as SYNC-DOWNLOAD-10 states. The check step must
+  turn pathname expansion off with `set -f` before the loop reads the names. A
+  glob that expands first passes as the file that it matches.
+- **WFL-SIGN-14** — The workflow must refuse an asset name that it makes itself:
+  `SHA256`, `SHA256.sig`, and the two tarball names. Two files of one name break
+  the manifest and the upload.
+- **WFL-SIGN-15** — The workflow must refuse an asset name that names no file
+  under `build/`. An absent file is a fault of the build of the caller.
+- **WFL-SIGN-16** — The asset check must run in its own step, before a secret
+  reaches the environment of any step.
+- **WFL-SIGN-17** — The workflow must refuse an asset name that the `assets`
+  input holds twice. `gh release create` refuses a second upload of one name.
 
 <a id="wfl-web"></a>
 
