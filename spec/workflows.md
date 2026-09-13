@@ -61,6 +61,10 @@ workflow, the setup-perl cache, the setup-uv cache, and the gitleaks gate.
   GitHub raises no push event for a tag that `GITHUB_TOKEN` pushes. The input
   must select both the checkout and the version. Without it the workflow must
   read the ref of the push.
+- **WFL-REUSE-5** — The Perl release workflow must accept an `assets` input: a
+  whitespace-separated list of file names under `build/`. `make dist` of the
+  caller writes each file, and the workflow attaches each one. The default is
+  empty.
 - **WFL-REUSE-3** — `environment: release` must stay in the callee job, and
   `permissions` and `secrets: inherit` must stay in the caller.
 
@@ -97,6 +101,9 @@ organization.
   whitespace or a parenthesis. The manifest reader of a consumer takes neither.
 - **WFL-SIGN-11** — The package install must run in its own step, before a
   secret reaches the environment of any step.
+- **WFL-SIGN-12** — The manifest must name each extra asset that the caller
+  names in the `assets` input, beside the two tarballs. The name guard of
+  WFL-SIGN-10 covers each asset name, and a name must not hold a `/`.
 
 <a id="wfl-web"></a>
 

@@ -35,6 +35,11 @@ on:
         required: false
         type: string
         default: ""
+      assets:
+        description: "Extra files under build/ to attach, whitespace-separated"
+        required: false
+        type: string
+        default: ""
       pause:
         description: "Upload the tarball to PAUSE"
         required: false
@@ -101,6 +106,54 @@ jobs:
           cp "build/$DIST_NAME-$DIST_VERSION.tar.gz" \
             "build/$DIST_NAME.tar.gz"
 
+      # A caller can name one more file for the release, and make
+      # dist of the caller writes it under build/. This step reads
+      # the names before the signing step reads the key, so a bad
+      # name and an absent file both stop the run before a secret is
+      # in the environment of any step.
+      #
+      # Every name here carries the DIST_ prefix, as the build step
+      # above does. WFL-ACTIONS-9 states the rule.
+      - name: Check the release assets
+        id: assets
+        shell: bash
+        env:
+          DIST_NAME: ${{ inputs.dist }}
+          DIST_VERSION: ${{ steps.version.outputs.version }}
+          DIST_ASSETS: ${{ inputs.assets }}
+        run: |
+          # The input is a whitespace-separated list, so the word
+          # split of the shell reads it. The name guard of the
+          # signing step holds for each name, and a name holds no /:
+          # the manifest names a file and never a path.
+          # shellcheck disable=SC2086
+          for name in $DIST_ASSETS; do
+            case "$name" in
+              *[[:space:]\(\)/]*)
+                echo "release: the asset name holds whitespace, a" \
+                  "parenthesis or a /: $name" >&2
+                exit 1 ;;
+            esac
+            if [ ! -f "build/$name" ]; then
+              echo "release: build/$name is absent" >&2
+              exit 1
+            fi
+          done
+
+          # The release step takes one list: the two tarballs, and
+          # then each asset. A caller that names no asset gets the
+          # two tarballs alone.
+          {
+            echo 'files<<END_OF_LIST'
+            echo "build/$DIST_NAME-$DIST_VERSION.tar.gz"
+            echo "build/$DIST_NAME.tar.gz"
+            # shellcheck disable=SC2086
+            for name in $DIST_ASSETS; do
+              echo "build/$name"
+            done
+            echo 'END_OF_LIST'
+          } >> "$GITHUB_OUTPUT"
+
       # The signify tier of scripts/deps reads a manifest beside the
       # download, and it keys that manifest on the file name. A
       # consumer can name the versioned tarball or the stable one, so
@@ -133,6 +186,7 @@ jobs:
           KEY_B: ${{ secrets.SIGNIFY_RELEASE_KEY_B }}
           DIST_NAME: ${{ inputs.dist }}
           DIST_VERSION: ${{ steps.version.outputs.version }}
+          DIST_ASSETS: ${{ inputs.assets }}
         run: |
           set -o pipefail
 
@@ -180,7 +234,12 @@ jobs:
           # on its own, so no field of a sha256sum line has to survive
           # a split.
           : > build/SHA256
-          for name in "$DIST_NAME-$DIST_VERSION.tar.gz" "$DIST_NAME.tar.gz"; do
+          # The check step above held each asset name to the guard,
+          # so the word split here takes a name that the manifest
+          # carries. An empty list adds no line.
+          # shellcheck disable=SC2086
+          for name in "$DIST_NAME-$DIST_VERSION.tar.gz" \
+            "$DIST_NAME.tar.gz" $DIST_ASSETS; do
             digest=$(sha256sum "build/$name" | sed 's|^\\||' \
               | cut -d' ' -f1)
             case "$digest" in
@@ -214,8 +273,7 @@ jobs:
           tag: ${{ steps.version.outputs.tag }}
           title: ${{ inputs.name }} ${{ steps.version.outputs.version }}
           files: |
-            build/${{ inputs.dist }}-${{ steps.version.outputs.version }}.tar.gz
-            build/${{ inputs.dist }}.tar.gz
+            ${{ steps.assets.outputs.files }}
             ${{ steps.sign.outputs.signed == 'yes' && 'build/SHA256' || '' }}
             ${{ steps.sign.outputs.signed == 'yes' && 'build/SHA256.sig' || '' }}
           token: ${{ github.token }}
