@@ -231,7 +231,7 @@ subtest 'the manifest takes the name it is given' => sub {
 	);
 };
 
-subtest 'a caller can name one more release asset' => sub {
+subtest 'a caller can name a list of release assets' => sub {
 
 	# The three callers of today name no asset. A required input,
 	# or a default that held a name, would change every release of
@@ -267,13 +267,62 @@ subtest 'the check step reads the assets before the key' => sub {
 	ok( $build_at < $check_at, 'the build writes the files first' );
 	ok( $check_at < $sign_at,  'and the check runs before the key' );
 
-	# The name guard of the signing step, and a / with it. The
-	# manifest names a file and never a path.
+	# Pathname expansion must not run before the name guard. A
+	# glob that expands first passes as the file that it matches,
+	# and the guard never reads the glob. WFL-SIGN-13 states it.
+	#
+	# The step holds two loops over $DIST_ASSETS, and the guard
+	# belongs to the first one. $gap spans text that holds no
+	# loop keyword, so the pattern reads set -f, the loop, and
+	# the positive rule of that loop, with no loop between them.
+	my $gap   = qr{(?:(?!for name in).)*}s;
+	my $plain = qr{\Q-* | *[!A-Za-z0-9._-]*)\E};
 	like(
 		$ASSETS,
-		qr{\*\[\[:space:\]\\\(\\\)/\]\*\)},
-		'the step refuses whitespace, a parenthesis and a /'
+		qr{\n\s*set -f\n${gap}for name in \$DIST_ASSETS${gap}$plain}s,
+		'the step turns pathname expansion off before the name guard'
 	);
+
+	# One positive rule, not a list of prohibitions: a plain file
+	# name passes, and every other name fails. That covers
+	# whitespace, a parenthesis, a / and a glob character.
+	# WFL-SIGN-13 states the rule.
+	like( $ASSETS, $plain,
+		'the step takes a plain file name and refuses the rest' );
+
+	# WFL-SIGN-14. The release makes these four files itself, so a
+	# caller that names one must fail the check, never the upload.
+	like(
+		$ASSETS,
+		qr{SHA256 \| SHA256\.sig},
+		'it refuses the manifest and its signature'
+	);
+	like(
+		$ASSETS,
+		qr{\| "\$DIST_NAME-\$DIST_VERSION\.tar\.gz"},
+		'and the versioned tarball that it builds'
+	);
+	like(
+		$ASSETS,
+		qr{\| "\$DIST_NAME\.tar\.gz"},
+		'and the stable one beside it'
+	);
+
+	# WFL-SIGN-17. gh release create refuses a second upload of one
+	# name, so a repeat must stop at the check step. A guard that
+	# reads an empty accumulator refuses nothing, so the three
+	# lines must stand in this order.
+	like(
+		$ASSETS,
+		qr{seen="".*case " \$seen " in.*seen="\$seen \$name"}s,
+		'it starts seen empty, reads it, and adds each name'
+	);
+	like(
+		$ASSETS,
+		qr{the assets input names build/\$name},
+		'and refuses a name that the input holds twice'
+	);
+
 	like(
 		$ASSETS,
 		qr{if \[ ! -f "build/\$name" \]},

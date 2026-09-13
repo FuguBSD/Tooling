@@ -102,8 +102,22 @@ organization.
 - **WFL-SIGN-11** — The package install must run in its own step, before a
   secret reaches the environment of any step.
 - **WFL-SIGN-12** — The manifest must name each extra asset that the caller
-  names in the `assets` input, beside the two tarballs. The name guard of
-  WFL-SIGN-10 covers each asset name, and a name must not hold a `/`.
+  names in the `assets` input, beside the two tarballs.
+- **WFL-SIGN-13** — An asset name must hold a letter, a digit, a period, a
+  hyphen or an underscore only. A name must not begin with a hyphen. The release
+  publishes the bare name, and a download keeps it. `tar` and `unzip` read a
+  leading hyphen as an option, as SYNC-DOWNLOAD-10 states. The check step must
+  turn pathname expansion off with `set -f` before the loop reads the names. A
+  glob that expands first passes as the file that it matches.
+- **WFL-SIGN-14** — The workflow must refuse an asset name that it makes itself:
+  `SHA256`, `SHA256.sig`, and the two tarball names. Two files of one name break
+  the manifest and the upload.
+- **WFL-SIGN-15** — The workflow must refuse an asset name that names no file
+  under `build/`. An absent file is a fault of the build of the caller.
+- **WFL-SIGN-16** — The asset check must run in its own step, before a secret
+  reaches the environment of any step.
+- **WFL-SIGN-17** — The workflow must refuse an asset name that the `assets`
+  input holds twice. `gh release create` refuses a second upload of one name.
 
 <a id="wfl-web"></a>
 
