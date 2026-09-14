@@ -200,7 +200,7 @@ jobs:
       # environment of any step. An unpinned package install must not
       # run beside a private key.
       - name: Install signify
-        if: vars.SIGNIFY_RELEASE_SLOT != ''
+        if: vars.RELENG_RELEASE_SLOT != ''
         run: |
           sudo apt-get update
           sudo apt-get install --yes signify-openbsd
@@ -218,9 +218,9 @@ jobs:
         id: sign
         shell: bash
         env:
-          SLOT: ${{ vars.SIGNIFY_RELEASE_SLOT }}
-          KEY_A: ${{ secrets.SIGNIFY_RELEASE_KEY_A }}
-          KEY_B: ${{ secrets.SIGNIFY_RELEASE_KEY_B }}
+          SLOT: ${{ vars.RELENG_RELEASE_SLOT }}
+          KEY_A: ${{ secrets.RELENG_RELEASE_KEY_A }}
+          KEY_B: ${{ secrets.RELENG_RELEASE_KEY_B }}
           DIST_NAME: ${{ inputs.dist }}
           DIST_VERSION: ${{ steps.version.outputs.version }}
           DIST_ASSETS: ${{ inputs.assets }}
@@ -247,7 +247,7 @@ jobs:
           case "$SLOT" in
             A) key="$KEY_A" ;;
             B) key="$KEY_B" ;;
-            *) echo "release: SIGNIFY_RELEASE_SLOT is '$SLOT'," \
+            *) echo "release: RELENG_RELEASE_SLOT is '$SLOT'," \
                  "and the slots are A and B" >&2
                exit 1 ;;
           esac

@@ -59,17 +59,17 @@ subtest 'the signing step reads the active slot' => sub {
 	# names.
 	like(
 		$yml,
-		qr/SLOT:\s*\$\{\{\s*vars\.SIGNIFY_RELEASE_SLOT\s*\}\}/,
+		qr/SLOT:\s*\$\{\{\s*vars\.RELENG_RELEASE_SLOT\s*\}\}/,
 		'the variable names the active slot'
 	);
 	like(
 		$yml,
-		qr/KEY_A:\s*\$\{\{\s*secrets\.SIGNIFY_RELEASE_KEY_A\s*\}\}/,
+		qr/KEY_A:\s*\$\{\{\s*secrets\.RELENG_RELEASE_KEY_A\s*\}\}/,
 		'and slot A reaches the step'
 	);
 	like(
 		$yml,
-		qr/KEY_B:\s*\$\{\{\s*secrets\.SIGNIFY_RELEASE_KEY_B\s*\}\}/,
+		qr/KEY_B:\s*\$\{\{\s*secrets\.RELENG_RELEASE_KEY_B\s*\}\}/,
 		'and slot B with it'
 	);
 
@@ -439,7 +439,7 @@ subtest 'the install runs beside no key' => sub {
 	my $install = _step( $yml, 'Install signify' );
 	ok( $install, 'the install has a step of its own' ) or return;
 
-	unlike( $install, qr/SIGNIFY_RELEASE_KEY/, 'and no key reaches it' );
+	unlike( $install, qr/RELENG_RELEASE_KEY/, 'and no key reaches it' );
 	ok( $SIGN, 'the signing step is there' ) or return;
 	unlike( $SIGN, qr/apt-get/, 'and the signing step installs nothing' );
 };
