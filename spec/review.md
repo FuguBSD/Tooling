@@ -99,8 +99,8 @@ project session needs the merge procedure.
   or one feature for each change set.
 - **REV-MERGE-2** — `pull-it` must dispatch a `fixer` agent for a failed check
   of the pull request.
-- **REV-MERGE-3** — `pull-it` must end with a stop line: the next change starts
-  in a new session.
+- **REV-MERGE-3** — The root `CLAUDE.md` must hold the session rule: carry the
+  work while the context has room. A skill must not restate it.
 - **REV-MERGE-4** — The pull request body must hold the round table. The table
   holds the round, the finding count, the quorum count, and the residue.
   `.github/pull_request_template.md` must carry the table, in place of a review
