@@ -433,7 +433,8 @@ for my $target (qw(format-md format-md-fix deps deps-test deps-develop)) {
 
 	# The org fragment owns the deps targets (MK-VERBS-4): the
 	# frozen names resolve without any language pack, and each
-	# recipe runs scripts/deps with its environment name.
+	# recipe runs scripts/fugubench deps with its environment
+	# name.
 	my %ENV_OF = (
 		'deps'         => 'runtime',
 		'deps-test'    => 'test',
@@ -445,20 +446,20 @@ for my $target (qw(format-md format-md-fix deps deps-test deps-develop)) {
 		    or diag($output);
 		like(
 			$output,
-			qr{scripts/deps $ENV_OF{$target}},
-			"and $target runs scripts/deps $ENV_OF{$target}"
+			qr{scripts/fugubench deps $ENV_OF{$target}},
+			"and $target runs deps $ENV_OF{$target}"
 		);
 
 		# MK-DEPS-2: every chain installs the tool
 		# environment, and it installs before the rest.
 		like(
 			$output,
-			qr{scripts/deps tool},
+			qr{scripts/fugubench deps tool},
 			"and $target installs the tool environment"
 		);
 		like(
 			$output,
-			qr{scripts/deps tool.*scripts/deps $ENV_OF{$target}}s,
+qr{scripts/fugubench deps tool.*scripts/fugubench deps $ENV_OF{$target}}s,
 			"and $target installs tool first"
 		);
 	}

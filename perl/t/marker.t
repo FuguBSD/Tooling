@@ -20,6 +20,7 @@ my %EXEMPT = (
 	'org/sync/plans/.gitkeep' => 'an empty placeholder',
 	'org/sync/.github/pull_request_template.md' =>
 	    'each pull request body receives a copy',
+	'org/sync/scripts/fugubench' => 'FuguBench generates the text',
 );
 
 # _slurp($path):

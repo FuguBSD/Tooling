@@ -60,9 +60,10 @@ packs, each file at the same relative path.
   comment.
 - **SYNC-MARKER-3** — Only a shebang line, an `ex:` editor hint, YAML front
   matter, and blank lines can come before the marker.
-- **SYNC-MARKER-4** — A file without comment syntax, an empty placeholder file,
-  and a file that GitHub copies into user content carry no marker. The exempt
-  files are `.prettierrc` (JSON), `plans/.gitkeep` (empty), and
+- **SYNC-MARKER-4** — A file without comment syntax, an empty file, a generated
+  file, and a file that GitHub copies into user content carry no marker. The
+  exempt files are `.prettierrc` (JSON), `plans/.gitkeep` (empty),
+  `scripts/fugubench` (FuguBench generates it), and
   `.github/pull_request_template.md` (each pull request body receives a copy).
 - **SYNC-MARKER-5** — The test `perl/t/marker.t` must hold every pack file to
   this unit.
@@ -92,6 +93,13 @@ packs, each file at the same relative path.
   run before any dependency install, and macOS ships perl 5.34.
 - **SYNC-BOOTSTRAP-2** — `scripts/deps` must find `ftp` as an executable
   sibling. The two files move together, and the exec bit matters.
+- **SYNC-BOOTSTRAP-3** — The org pack must ship the wrapper shim
+  `scripts/fugubench`, with the exec bit. The file must equal the output of
+  `fugubench shim` of the pinned release, byte for byte. A new release of
+  FuguBench is a new copy of this file.
+- **SYNC-BOOTSTRAP-4** — The shim must need no install step. A fresh clone must
+  run `make deps` with `/bin/sh`, a downloader, a digest command, and perl v5.34
+  alone.
 
 <a id="sync-alias"></a>
 

@@ -5,6 +5,6 @@
 
 SPEC_CHECK	= org/sync/scripts/spec-check --root .
 STE_LINT	= org/sync/scripts/ste-lint --root .
-DEPS		= org/sync/scripts/deps
+DEPS		= org/sync/scripts/fugubench deps
 PERL_SRC_DIRS	= org perl scripts
 TEST_GLOBS	= perl/t/*.t
