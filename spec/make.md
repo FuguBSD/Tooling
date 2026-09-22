@@ -24,9 +24,9 @@ fragment, the gitleaks gate, and the consumer hook.
   is the commit gate.
 - **MK-VERBS-4** — The target names `deps`, `deps-test`, and `deps-develop` must
   not change. `mk/org.mk` must define the three targets over `$(DEPS)`, because
-  the org pack ships `scripts/deps`. The setup-perl action computes the names
-  from its `dependencies` input. `make deps` also covers the `tool` environment,
-  per MK-DEPS-2.
+  the org pack ships `scripts/fugubench`. The setup-perl action computes the
+  names from its `dependencies` input. `make deps` also covers the `tool`
+  environment, per MK-DEPS-2.
 - **MK-VERBS-5** — `format-md` must join `FORMAT_TARGETS`, and `format-md-fix`
   must join `FORMAT_FIX_TARGETS`. Only `mk/org.mk` defines the pair. prettier
   runs through bunx: the operator installs bun, and a CI job runs the setup-bun
@@ -173,13 +173,13 @@ example a local `.env` file, therefore never trips the gate.
 
 ## The dependency environments
 
-`scripts/deps` reads `deps/<OS>.txt` and installs the entries of one
-environment. The org pack ships the script, and `mk/org.mk` defines the targets
+`scripts/fugubench deps` reads `deps/<OS>.txt` and installs the entries of one
+environment. The org pack ships the shim, and `mk/org.mk` defines the targets
 over `$(DEPS)`.
 
 - **MK-DEPS-1** — The environments are `tool`, `runtime`, `test` and `develop`.
-  `scripts/deps` must reject every other word, in a manifest line and on the
-  command line.
+  `scripts/fugubench deps` must reject every other word, in a manifest line and
+  on the command line.
 - **MK-DEPS-2** — The `deps` target must run the `tool` environment and then the
   `runtime` environment. `deps-test` and `deps-develop` chain over `deps`, so
   `tool` installs one time in each chain.

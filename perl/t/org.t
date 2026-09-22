@@ -107,4 +107,7 @@ for my $script (qw(deps spec-check ste-lint)) {
 my $sh = `sh -n "$canon/scripts/ftp" 2>&1`;
 is( $? >> 8, 0, 'ftp parses' ) or diag($sh);
 
+my $shim = `sh -n "$canon/scripts/fugubench" 2>&1`;
+is( $? >> 8, 0, 'fugubench parses' ) or diag($shim);
+
 done_testing();

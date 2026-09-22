@@ -63,12 +63,14 @@ my $dir = consumer();
 	my ( $exit, $output ) = run_in($dir);
 	is( $exit, 0, 'sync into a fresh consumer works' ) or diag($output);
 
-	ok( -f "$dir/scripts/dist",     'dist arrives' );
-	ok( -f "$dir/scripts/deps",     'deps arrives' );
-	ok( -f "$dir/scripts/ftp",      'ftp arrives' );
-	ok( -f "$dir/t/ci/workflows.t", 'the consumer CI test arrives' );
-	ok( -f "$dir/t/ci/local.t",     'the consumer hook test arrives' );
-	ok( -x "$dir/scripts/deps",     'the exec bit survives' );
+	ok( -f "$dir/scripts/dist",      'dist arrives' );
+	ok( -f "$dir/scripts/deps",      'deps arrives' );
+	ok( -f "$dir/scripts/ftp",       'ftp arrives' );
+	ok( -f "$dir/scripts/fugubench", 'the fugubench shim arrives' );
+	ok( -x "$dir/scripts/fugubench", 'with the exec bit' );
+	ok( -f "$dir/t/ci/workflows.t",  'the consumer CI test arrives' );
+	ok( -f "$dir/t/ci/local.t",      'the consumer hook test arrives' );
+	ok( -x "$dir/scripts/deps",      'the exec bit survives' );
 
 	( $exit, $output ) = run_in( $dir, '--check' );
 	is( $exit, 0, 'a fresh sync passes --check' ) or diag($output);
