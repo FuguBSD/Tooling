@@ -21,12 +21,14 @@ them. It waits on work packages 1 and 3. Each repository package of work package
   reader rules. It drops the bold lead from the word count of STE-SENTENCE-6,
   and it removes the `@ABBREVIATIONS` table from STE-SENTENCE-4.
 - Extends: STE-SCOPE. The implementation adds the `--dir` option and the `.pod`
-  file to the walk and to the `--file` check of STE-SCOPE-5. It removes `docs/`
-  and the `spec/` subdirectory from the exempt set of STE-SCOPE-2.
+  file to the walk and to the `--file` check of STE-SCOPE-5. It adds `docs/` and
+  `spec/` with their subdirectories to the walk of STE-SCOPE-1. It removes the
+  two from the exempt set of STE-SCOPE-2.
 - Extends: MK-VERBS. The implementation adds `ste-lint-man` to the plain
   targets, and it names `mandoc` as the program of the target.
 - Extends: MK-COMPOSE. The implementation adds `ste-lint-man` to the gate list
-  of MK-COMPOSE-5, and it adds `MANDOC` to the variables of `mk/org.mk`.
+  of MK-COMPOSE-5, and it adds `MANDOC` and `STE_LINT_MAN` to the variables of
+  `mk/org.mk`.
 
 ## Purpose
 
@@ -50,10 +52,11 @@ In scope:
   `org/sync/scripts/ste-lint`.
 - The word rule, the sentence rule, a paragraph rule, and the POD reader.
 - The scope walk, the `--dir` option, and the exempt set.
-- A manual-page target of the org pack, and an HTML target of Website.
+- A manual-page script and target of the org pack, and an HTML target of
+  Website.
 - The prose repair of the twelve projects, the workspace, and the library.
 - The units STE-SCOPE, STE-RULES, STE-SENTENCE, MK-VERBS and MK-COMPOSE, and the
-  tests `perl/t/ste-lint.t` and `perl/t/man-lint.t`.
+  tests `perl/t/ste-lint.t`, `perl/t/man-lint.t` and `perl/t/org.t`.
 
 Out of scope:
 
@@ -180,9 +183,9 @@ and the count drops the lead.
 
 **One tool reads prose.** POD is prose with a directive line, a verbatim block,
 and a formatting code, and the reader gains those three marks. A manual page
-renders through `mandoc`, and a make target of the org pack feeds the lint. An
-HTML body renders through a tag strip, and a make target of Website feeds the
-lint. The lint itself reads Markdown and POD, and nothing else.
+renders through `mandoc`, and a script of the org pack feeds the lint. An HTML
+body renders through a tag strip, and a make target of Website feeds the lint.
+The lint itself reads Markdown and POD, and nothing else.
 
 **Core perl, v5.34.** The bootstrap constraint of SYNC-BOOTSTRAP holds.
 
@@ -193,9 +196,10 @@ walk, and it can repeat. The walk reads each `.md` file and each `.pod` file.
 `--file` still skips the walk. It accepts a `.md` path and a `.pod` path, and it
 rejects any other path before the first finding.
 
-The exempt set shrinks. The walk reads `docs/` and each `spec/` subdirectory. A
-root scratch file with a `SCRATCHPAD` name prefix and `.claude/worktrees/` stay
-exempt.
+The walk gains two trees. It enters `docs/` and `spec/` with their
+subdirectories, as it enters `plans/` today. The exempt set loses the two
+entries. A root scratch file with a `SCRATCHPAD` name prefix and
+`.claude/worktrees/` stay exempt.
 
 The lint reads a `.pod` file. A directive line starts with `=`. It ends a block,
 and the lint drops it. The lint skips the text from a `=begin` line to its
@@ -214,12 +218,21 @@ one `--dir` for each of the five pack trees, `infra/sync`, `org/sync`,
 `perl/sync`, `python/sync` and `web/sync`. The list is explicit, because
 MK-SUBSET-2 bans a GNU function in the file. A new pack adds one entry.
 
-The org pack gains the target `ste-lint-man`. It lists each `*.[1-9]` page that
-`git ls-files` reports, in any directory. It renders each page with
-`mandoc -T markdown` into `blib/man-md/`, strips the SYNOPSIS section, and runs
-`ste-lint --file` over the result. With no page, it renders nothing and passes.
-Without `mandoc`, it dies with the program name. `make check` of every consumer
-runs it. `MANDOC` names the program, with the default `mandoc`.
+The org pack gains the script `scripts/ste-lint-man` and the target
+`ste-lint-man`. The script is POSIX shell with the marker of SYNC-MARKER-1. It
+lists each `*.[1-9]` page that `git ls-files` reports, in any directory. With no
+page, it prints nothing and exits with status zero, before the `mandoc` check
+and the lint. Without `mandoc`, it dies with the program name. It renders each
+page with `mandoc -T markdown`, and it drops the SYNOPSIS section. It writes the
+result to `build/man-md/<page>.md`, with the tracked path of the page as
+`<page>`. The org `.gitignore` names `build/`. MK-VERBS-1 lets a read target
+write a gitignored path. The script then runs the `ste-lint` of its own
+directory with `--file` over the written files. The target is one recipe line
+that calls the script, per MK-SUBSET-3. `make check` of every consumer runs it.
+`MANDOC` names the program, with the default `mandoc`. The recipe passes it to
+the script in the environment. `STE_LINT_MAN` names the script, with the default
+`scripts/ste-lint-man`. `mk/local.mk` of this repository points it into
+`org/sync/scripts/`, as it does for `STE_LINT`.
 
 `mandoc` comes from the deps manifest. A repository that holds a page names
 `tool pkg mandoc` in `deps/Linux.txt`. `make deps` then installs it, per
@@ -253,7 +266,8 @@ exists after the rule merges.
 - A rule of STE-SCOPE: "The `--dir DIR` option must add one directory tree to
   the scope walk, and it can repeat."
 - A change of STE-SCOPE-1: "The lint must scan each `.md` file and each `.pod`
-  file of the walk."
+  file of the repository root. It must also scan `.github/`, `.claude/`,
+  `docs/`, `lib/`, `plans/`, `spec/`, and `t/` with their subdirectories."
 - A change of STE-SCOPE-5: "The `--file` path must name a readable `.md` file or
   a readable `.pod` file. The lint must reject any other path before it reports
   the first finding."
@@ -313,7 +327,7 @@ The package can start now. Each entry names its prototype count.
    [ qr/\bmust\s+\w+\s+no\b|\bmay not\b/i, 'prohibition without "must not"' ],        # 80
    [ qr/,\s+and\s+(?:the|a|an|its|each|every|no|one)\s+\w+\s+(?:is|are|holds|names|takes|gives|runs|has|does|stays|carries|reads|owns|keeps|sets|goes|must|can)\b/i,
        'balanced clause ", and the X does"' ],                                         # 157
-   [ qr/,\s+so\s+(?:the|a|an|it|each|every|no|one|that|this|its)\b/i,
+   [ qr/,\s+so\s+(?:the|a|an|it|each|every|no|one|this|its)\b/i,
        'causal clause ", so the"' ],                                                   # 369
    ```
 
@@ -368,7 +382,8 @@ The package can start now.
 1. Add the `--dir DIR` option. Each value joins the walk list beside `.github`,
    `.claude`, `lib`, `plans` and `t`. A value without a directory dies before
    the first finding, as STE-SCOPE-5 does for a file.
-2. Remove `docs/` and the `spec/` subdirectory from the exempt set of `_files`.
+2. Add `docs` and `spec` to the walk list of `_files`. Delete the first-level
+   read of `spec/`. The walk then enters each subdirectory of the two trees.
 3. Add `.pod` to the file filter of the walk and to the target check of
    `--file`. The check dies with `not a Markdown file` today. After the change
    it accepts a `.md` path and a `.pod` path, and it rejects any other path.
@@ -397,32 +412,45 @@ Acceptance:
 The package can start now. It waits on nothing. Every consumer takes it with its
 sync.
 
-1. Add the target `ste-lint-man` to `org/sync/mk/org.mk`, with the variable
-   `MANDOC ?= mandoc`. List each page with `git ls-files '*.[1-9]'`. FuguOracle
-   holds its pages at the root, FuguPass under `src/*/`, and the perl projects
-   under `man/`. For each page, run `$(MANDOC) -T markdown`, drop the lines from
-   the `# SYNOPSIS` heading to the next heading, and write
-   `blib/man-md/<page>.md`.
-2. Run `$(STE_LINT) --file` over the written files, and add the target to
-   `CHECK_TARGETS` of `mk/org.mk`. With no page, the target writes nothing and
-   passes. Without `mandoc`, the target fails with the program name.
-3. Add `perl/t/man-lint.t`. It renders a fixture page with a 30-word sentence in
-   DESCRIPTION and a 61-word SYNOPSIS, and it asserts one finding.
-4. Name `tool pkg mandoc` in `deps/Linux.txt` of this repository, because the
+1. Add the script `org/sync/scripts/ste-lint-man`, in POSIX shell, with the
+   marker of SYNC-MARKER-1 and the exec bit. The script lists each page with
+   `git ls-files '*.[1-9]'`. FuguOracle holds its pages at the root, FuguPass
+   under `src/*/`, and the perl projects under `man/`. With no page, the script
+   prints nothing and exits with status zero. It then checks `$MANDOC`, with the
+   fallback `mandoc`, and it dies with the program name when the check fails.
+2. For each page, the script runs `$MANDOC -T markdown` and drops the lines from
+   the `# SYNOPSIS` heading to the next heading. It writes the result to
+   `build/man-md/<page>.md`. It then runs the `ste-lint` of its own directory
+   with `--file` over the written files, and it exits with the lint status.
+3. Add the variables `MANDOC ?= mandoc` and
+   `STE_LINT_MAN ?= scripts/ste-lint-man` to `org/sync/mk/org.mk`. Add the
+   target `ste-lint-man` with the one recipe line
+   `@MANDOC="$(MANDOC)" $(STE_LINT_MAN)`, per MK-SUBSET-3. Add the target to
+   `CHECK_TARGETS` and to `.PHONY`. Set
+   `STE_LINT_MAN = org/sync/scripts/ste-lint-man` in `mk/local.mk`, because the
+   canonical scripts run in place here.
+4. Add `perl/t/man-lint.t`. It runs the script over a fixture page with a
+   30-word sentence in DESCRIPTION and a 61-word SYNOPSIS, and it asserts one
+   finding. It runs the script in an empty temporary repository, and it asserts
+   an empty output and the exit status zero. Add `ste-lint-man` to the `sh -n`
+   parse check of `perl/t/org.t`.
+5. Name `tool pkg mandoc` in `deps/Linux.txt` of this repository, because the
    test renders a page. macOS and OpenBSD ship `mandoc` in the base system, and
    `deps/Darwin.txt` stays. The `test` job installs the `tool` environment
    through `make deps-test`, per MK-DEPS-2.
-5. Document the target in `spec/make.md`. Add `ste-lint-man` to the plain-target
-   list of MK-VERBS and to the gate list of MK-COMPOSE-5. Add `MANDOC` to the
-   variables of `mk/org.mk` under MK-COMPOSE. State that a repository with a
-   page names `tool pkg mandoc` in `deps/Linux.txt`, per MK-DEPS-4.
+6. Document the script and the target in `spec/make.md`. Add `ste-lint-man` to
+   the plain-target list of MK-VERBS and to the gate list of MK-COMPOSE-5. Add
+   `MANDOC` and `STE_LINT_MAN` to the variables of `mk/org.mk` under MK-COMPOSE.
+   State that a repository with a page names `tool pkg mandoc` in
+   `deps/Linux.txt`, per MK-DEPS-4.
 
 Acceptance:
 
 - `make check` passes here, and `perl/t/man-lint.t` fails against `main`.
-- On a host without `mandoc`, the target dies with the program name.
+- `make -n ste-lint-man` prints one line.
+- On a host without `mandoc`, the script dies with the program name.
 - `make deps` installs `mandoc` on Linux, and the target passes after it.
-- A consumer without a page passes the target without `mandoc`.
+- A consumer without a page passes the target without `mandoc`, with no output.
 
 ### WP5 — Website lints its HTML bodies
 
@@ -487,7 +515,7 @@ small consumer proves the rollout before a large repair starts.
 |    13 | FuguPass     |   300 |          247 |   0 |      4 pages |
 |    14 | FuguTTX      |   302 |         1584 |   0 |            0 |
 
-The `ste-lint-man` target of the org pack reaches each page of the table,
+The `ste-lint-man` script of the org pack reaches each page of the table,
 because it lists the pages with `git ls-files`. The root pages of FuguOracle and
 the `src/*/` pages of FuguPass count with the `man/` pages of the perl projects.
 
@@ -534,8 +562,9 @@ study wrote them from the repairs that went wrong.
   `The tool is stateless` or `The tool does not hold state`.
 - Split a two-topic sentence. "X does A, and Y does B" becomes two sentences. "X
   holds A, so Y does B" becomes two sentences, or "Y does B because X holds A".
-- Replace a colon assertion with a sentence. "The tier is empty: Fugu needs core
-  Perl only" becomes "The tier is empty. Fugu needs core Perl only".
+- Replace a colon assertion with a sentence. "The tier is empty: the daemon
+  needs core Perl only" becomes "The tier is empty. The daemon needs core Perl
+  only".
 - Drop the tail negation. "Write the page for the visitor, not for the
   maintainer" becomes "Write the page for the visitor".
 - Replace `lands` with `merges`, and `a few` with a count.
@@ -559,8 +588,8 @@ fail against the script of `main`. The tests must assert:
 - `no step, no schedule, and no name` fails once, and `no step and one name`
   passes.
 - `Three caveats belong at the front.` fails, and `Three files exist.` passes.
-- `The tier is empty: Fugu needs core Perl only.` fails, and a table row with a
-  colon passes.
+- `The tier is empty: the daemon needs core Perl only.` fails, and a table row
+  with a colon passes.
 - `The tool runs; the daemon waits.` fails, and a semicolon inside a code span
   passes.
 - `Write the page for the visitor, not for the maintainer.` fails, and
@@ -588,6 +617,13 @@ fail against the script of `main`. The tests must assert:
   word. The same sentence passes on a directive line, between `=begin` and
   `=end`, after a `=for` line, and after `=cut`.
 
+`perl/t/man-lint.t` runs `ste-lint-man`. It must assert:
+
+- A fixture page with a 30-word sentence in DESCRIPTION and a 61-word SYNOPSIS
+  reports one finding.
+- With no page, the script prints nothing and exits with status zero.
+- Without `mandoc`, the script dies with the program name.
+
 ## What this repository cannot prove
 
 The green state of a consumer needs the `make check` of that consumer, with its
@@ -603,7 +639,9 @@ The HTML count of Website is unmeasured. Work package 5 measures it.
 
 Each table entry is one line, and a revert of the line removes the rule. Each
 mechanism of work package 2 and work package 3 merges in one commit, and one
-revert removes it.
+revert removes it. Work package 4 merges in one commit, with the script, the
+target, the test and the specification text. One revert removes the four. A
+consumer drops the script and the target at its next sync.
 
 A consumer that finds a rule wrong pins the earlier pack in its own change. It
 reports the finding here, with the sentence that the rule hit. The rule then
