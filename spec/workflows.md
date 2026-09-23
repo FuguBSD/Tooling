@@ -72,7 +72,7 @@ workflow, the setup-perl cache, the setup-uv cache, and the gitleaks gate.
 
 ## The release signature
 
-`scripts/deps` verifies a download in two tiers, and the signify tier reads a
+FuguBench verifies a download in two tiers, and the signify tier reads a
 manifest that the upstream publishes beside the download. The Perl release
 workflow publishes that manifest, so one change serves every distribution of the
 organization.
@@ -80,8 +80,8 @@ organization.
 - **WFL-SIGN-1** — The Perl release workflow must publish a `SHA256` file and a
   `SHA256.sig` file beside the release tarballs.
 - **WFL-SIGN-2** — The manifest must name the versioned tarball and the stable
-  tarball. A consumer can name either one, and SYNC-DOWNLOAD-6 keys the manifest
-  on the file name.
+  tarball. A consumer can name either one, and FuguBench DEPS-TIER-7 keys the
+  manifest on the file name.
 - **WFL-SIGN-3** — The manifest must hold a file name and never a path. One
   release directory holds unique names.
 - **WFL-SIGN-4** — Two organization secrets must hold the release keys under
@@ -106,9 +106,9 @@ organization.
 - **WFL-SIGN-13** — An asset name must hold a letter, a digit, a period, a
   hyphen or an underscore only. A name must not begin with a hyphen. The release
   publishes the bare name, and a download keeps it. `tar` and `unzip` read a
-  leading hyphen as an option, as SYNC-DOWNLOAD-10 states. The check step must
-  turn pathname expansion off with `set -f` before the loop reads the names. A
-  glob that expands first passes as the file that it matches.
+  leading hyphen as an option, as FuguBench DEPS-INSTALL-8 states. The check
+  step must turn pathname expansion off with `set -f` before the loop reads the
+  names. A glob that expands first passes as the file that it matches.
 - **WFL-SIGN-14** — The workflow must refuse an asset name that it makes itself:
   `SHA256`, `SHA256.sig`, and the two tarball names. Two files of one name break
   the manifest and the upload.
@@ -138,7 +138,7 @@ organization.
 ## The setup-perl cache
 
 - **WFL-CACHE-1** — The setup-perl cache key must hash `deps/Linux.txt`,
-  `scripts/deps`, and `org/sync/scripts/deps`, and nothing else.
+  `scripts/fugubench`, and `org/sync/scripts/fugubench`, and nothing else.
 - **WFL-CACHE-2** — The test `perl/t/setup-perl.t` must stay in sync with the
   cache key.
 

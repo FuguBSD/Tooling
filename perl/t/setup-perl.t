@@ -35,12 +35,13 @@ my %TARGET = (
 	develop => 'deps-develop',
 );
 
-# The paths the cache key hashes. A consumer keeps the installer at
-# scripts/deps. This repository keeps the canonical copy at
-# org/sync/scripts/deps and has no scripts/deps. hashFiles skips a
-# path that does not exist, so each repository hashes the manifest
-# plus the one installer path it has.
-my @HASHED = ( 'deps/Linux.txt', 'scripts/deps', 'org/sync/scripts/deps' );
+# The paths the cache key hashes. A consumer keeps the shim at
+# scripts/fugubench. This repository keeps the canonical copy at
+# org/sync/scripts/fugubench and has no scripts/fugubench. hashFiles
+# skips a path that does not exist, so each repository hashes the
+# manifest plus the one shim path it has.
+my @HASHED =
+    ( 'deps/Linux.txt', 'scripts/fugubench', 'org/sync/scripts/fugubench' );
 
 # _slurp($path):
 #	Whole file as text, or undef with a failed assertion.
@@ -156,9 +157,9 @@ subtest 'the cache key covers what decides the tree' => sub {
 	# Fail closed: hashFiles over a path that matches nothing returns
 	# an empty string rather than an error. Thus a renamed input
 	# would quietly collapse the key, not rotate it. The hashed list
-	# is fixed: the manifest plus one installer path per repository
+	# is fixed: the manifest plus one shim path per repository
 	# shape. This repository must hold the manifest and the
-	# canonical installer.
+	# canonical shim.
 	my ($hashed) = $yml =~ /hashFiles\(([^)]*)\)/;
 	ok( defined $hashed, 'the key hashes files' ) or return;
 
@@ -167,8 +168,8 @@ subtest 'the cache key covers what decides the tree' => sub {
 
 	ok( -f "$root/deps/Linux.txt", 'the manifest exists here' );
 	ok(
-		-f "$root/org/sync/scripts/deps",
-		'the canonical installer exists here'
+		-f "$root/org/sync/scripts/fugubench",
+		'the canonical shim exists here'
 	);
 
 	like(

@@ -7,7 +7,8 @@ description:
 # repository. A consumer repository references it as
 # FuguBSD/Tooling/perl/actions/setup-perl@main. The steps of a
 # composite action run in the caller's workspace, so the Makefile,
-# deps/Linux.txt and scripts/deps below are always the caller's own.
+# deps/Linux.txt and scripts/fugubench below are always the caller's
+# own.
 #
 # Linux only. The bootstrap below uses apt-get, and the cache key hashes
 # deps/Linux.txt. Every runner these repositories use is Ubuntu, x86_64
@@ -61,9 +62,9 @@ runs:
         # Only the bootstrap. Everything else comes from
         # deps/Linux.txt with `make deps*` below, which is the single
         # authoritative list. This step installs cpanminus from a
-        # package instead of leaving it to scripts/deps. Otherwise
-        # scripts/deps would fetch and build App::cpanminus from
-        # cpanmin.us on every run.
+        # package instead of leaving it to `fugubench deps`.
+        # Otherwise `fugubench deps` would download the standalone
+        # cpanm script on every run.
         sudo apt-get update
         sudo apt-get install -y \
           cpanminus \
@@ -94,13 +95,14 @@ runs:
         #
         # The key covers exactly what decides the contents of the tree.
         # That is the environment, the interpreter, the manifest that
-        # names the modules, and the script that installs them. Nothing
-        # else goes in. The Makefile changes for unrelated reasons
-        # every other week, and a hash of it would rebuild the tree
-        # from source each time. Linux does not read cpanfile, because
-        # scripts/deps reads deps/Linux.txt. The documented workflow
-        # keeps the two in sync, so a module that you add to one
-        # rotates this key through the other.
+        # names the modules, and the shim that pins the program. The
+        # program installs the modules. Nothing else goes in. The
+        # Makefile changes for unrelated reasons every other week, and
+        # a hash of it would rebuild the tree from source each time.
+        # Linux does not read cpanfile, because `fugubench deps`
+        # reads deps/Linux.txt. The documented workflow keeps the two
+        # in sync, so a module that you add to one rotates this key
+        # through the other.
         #
         # The tree holds compiled XS: CryptX, Net::SSH2 and
         # Math::BigInt::GMP. Thus it is only valid for the perl that
@@ -128,21 +130,23 @@ runs:
         # the variable NAME. $prefixe6c451... is unset, so the key came
         # out empty, and actions/cache rejected it.
         #
-        # A consumer repository keeps the installer at scripts/deps.
+        # A consumer repository keeps the shim at scripts/fugubench.
         # The Tooling repository keeps the canonical copy at
-        # org/sync/scripts/deps and has no scripts/deps. hashFiles
-        # skips a path that does not exist, so each repository hashes
-        # the manifest plus the one installer path it has.
-        hash="${{ hashFiles('deps/Linux.txt', 'scripts/deps', 'org/sync/scripts/deps') }}"
+        # org/sync/scripts/fugubench and has no scripts/fugubench.
+        # hashFiles skips a path that does not exist, so each
+        # repository hashes the manifest plus the one shim path it
+        # has. The shim pins one FuguBench release, so a new pin
+        # rotates the key.
+        hash="${{ hashFiles('deps/Linux.txt', 'scripts/fugubench', 'org/sync/scripts/fugubench') }}"
 
         echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
         echo "key=$prefix$hash" >> "$GITHUB_OUTPUT"
 
     - name: Restore the CPAN tree
       id: restore
-      # local/ is the whole of what cpanm installs. scripts/deps passes
-      # --local-lib=$PERL_LOCAL_LIB_ROOT, so nothing lands in the system
-      # perl. The cache deliberately omits the OS packages. apt's
+      # local/ is the whole of what cpanm installs. `fugubench deps`
+      # passes --local-lib=$PERL_LOCAL_LIB_ROOT, so nothing lands in
+      # the system perl. The cache omits the OS packages. apt's
       # archive directory is root-owned, and the cache post-step could
       # not restore into it. Also, the win would be the download only,
       # never dpkg's unpack.
@@ -159,7 +163,7 @@ runs:
       shell: bash
       # Unconditional, cache hit or not. The cache does not hold the OS
       # packages. Also, cpanm over an already-complete tree is a
-      # version check per module, not a build. scripts/deps is
+      # version check per module, not a build. `fugubench deps` is
       # idempotent, so this step also makes sure that a restored tree
       # is usable.
       run: make ${{ steps.env.outputs.target }}

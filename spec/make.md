@@ -178,18 +178,13 @@ environment. The org pack ships the shim, and `mk/org.mk` defines the targets
 over `$(DEPS)`.
 
 - **MK-DEPS-1** — The environments are `tool`, `runtime`, `test` and `develop`.
-  `scripts/fugubench deps` must reject every other word, in a manifest line and
-  on the command line.
 - **MK-DEPS-2** — The `deps` target must run the `tool` environment and then the
   `runtime` environment. `deps-test` and `deps-develop` chain over `deps`, so
   `tool` installs one time in each chain.
 - **MK-DEPS-3** — A `deps-tool` target must not exist, because MK-VERBS-4 fixes
   the three target names.
 - **MK-DEPS-4** — The `tool` environment must hold the tools that a gate needs,
-  for example gitleaks. A `tool` entry must not use the signify tier, because
-  that tier needs `signify(1)`.
-- **MK-DEPS-5** — A manifest with a signify-tier entry must name the signify
-  package in its `tool` environment. OpenBSD holds the command in base.
+  for example gitleaks.
 
 <a id="mk-local"></a>
 

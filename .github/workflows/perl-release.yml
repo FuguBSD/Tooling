@@ -138,8 +138,8 @@ jobs:
             # and a glob character together. The manifest names a
             # file and never a path. The release publishes the bare
             # name, and a download keeps it. tar and unzip read a
-            # leading hyphen as an option, as SYNC-DOWNLOAD-10
-            # states.
+            # leading hyphen as an option, as FuguBench
+            # DEPS-INSTALL-8 states.
             case "$name" in
               -* | *[!A-Za-z0-9._-]*)
                 echo "release: the asset name is no plain file" \
@@ -191,10 +191,10 @@ jobs:
             echo 'END_OF_LIST'
           } >> "$GITHUB_OUTPUT"
 
-      # The signify tier of scripts/deps reads a manifest beside the
-      # download, and it keys that manifest on the file name. A
-      # consumer can name the versioned tarball or the stable one, so
-      # the manifest holds both.
+      # The signify tier of the fugubench deps verb reads a manifest
+      # beside the download, and it keys that manifest on the file
+      # name. A consumer can name the versioned tarball or the stable
+      # one, so the manifest holds both.
       #
       # The install runs in its own step, before a secret is in the
       # environment of any step. An unpinned package install must not

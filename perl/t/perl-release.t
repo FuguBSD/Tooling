@@ -166,9 +166,9 @@ qr/DIST_VERSION:\s*\$\{\{\s*steps\.version\.outputs\.version\s*\}\}/,
 subtest 'the manifest names both tarballs' => sub {
 	ok( $SIGN, 'the signing step is there' ) or return;
 
-	# scripts/deps keys the signed manifest on the file name
-	# (SYNC-DOWNLOAD-6), and a consumer can name the versioned
-	# tarball or the stable one.
+	# The fugubench deps verb keys the signed manifest on the file
+	# name (FuguBench DEPS-TIER-7), and a consumer can name the
+	# versioned tarball or the stable one.
 	like(
 		$SIGN,
 		qr/for name in "\$DIST_NAME-\$DIST_VERSION\.tar\.gz"/,
@@ -179,7 +179,7 @@ subtest 'the manifest names both tarballs' => sub {
 
 	# The manifest names a file and never a path, because one
 	# release directory holds unique names. A key that held a path
-	# makes scripts/deps die for every consumer, so the guard
+	# makes the deps verb die for every consumer, so the guard
 	# reads the argument of the printf and not the format alone.
 	like(
 		$SIGN,
