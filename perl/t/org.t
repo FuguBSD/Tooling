@@ -99,13 +99,10 @@ ok( !-f "$root/Makefile", 'the root holds no Makefile' );
 my @orphans = grep { !-f "$canon/$_" } _walk( "$root/.claude", $root );
 is( "@orphans", q{}, 'no orphaned root copy under .claude' );
 
-for my $script (qw(deps spec-check ste-lint)) {
+for my $script (qw(spec-check ste-lint)) {
 	my $output = `perl -c "$canon/scripts/$script" 2>&1`;
 	is( $? >> 8, 0, "$script compiles" ) or diag($output);
 }
-
-my $sh = `sh -n "$canon/scripts/ftp" 2>&1`;
-is( $? >> 8, 0, 'ftp parses' ) or diag($sh);
 
 my $shim = `sh -n "$canon/scripts/fugubench" 2>&1`;
 is( $? >> 8, 0, 'fugubench parses' ) or diag($shim);

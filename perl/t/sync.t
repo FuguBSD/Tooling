@@ -43,6 +43,21 @@ sub consumer (@packs)
 	return $dir;
 }
 
+# _slurp($path):
+#	Whole file as bytes, or undef with a failed assertion.
+sub _slurp ($path)
+{
+	open my $fh, '<:raw', $path or do {
+		fail("$path is readable");
+		return;
+	};
+	local $/ = undef;
+	my $content = <$fh>;
+	close $fh;
+
+	return $content;
+}
+
 # Without a .toolingrc the target is not a consumer.
 {
 	my $dir = tempdir( CLEANUP => 1 );
@@ -64,13 +79,10 @@ my $dir = consumer();
 	is( $exit, 0, 'sync into a fresh consumer works' ) or diag($output);
 
 	ok( -f "$dir/scripts/dist",      'dist arrives' );
-	ok( -f "$dir/scripts/deps",      'deps arrives' );
-	ok( -f "$dir/scripts/ftp",       'ftp arrives' );
 	ok( -f "$dir/scripts/fugubench", 'the fugubench shim arrives' );
 	ok( -x "$dir/scripts/fugubench", 'with the exec bit' );
 	ok( -f "$dir/t/ci/workflows.t",  'the consumer CI test arrives' );
 	ok( -f "$dir/t/ci/local.t",      'the consumer hook test arrives' );
-	ok( -x "$dir/scripts/deps",      'the exec bit survives' );
 
 	( $exit, $output ) = run_in( $dir, '--check' );
 	is( $exit, 0, 'a fresh sync passes --check' ) or diag($output);
@@ -80,24 +92,26 @@ my $dir = consumer();
 # --check fails on a content change, a lost exec bit, and a missing
 # file - and changes nothing itself.
 {
-	open my $fh, '>>', "$dir/scripts/ftp" or die "append: $!";
+	open my $fh, '>>', "$dir/scripts/spec-check" or die "append: $!";
 	print $fh "# drift\n";
 	close $fh;
 
 	my ( $exit, $output ) = run_in( $dir, '--check' );
 	isnt( $exit, 0, 'a content change fails --check' );
-	like( $output, qr{scripts/ftp: content differs}, 'and is named' );
+	like( $output, qr{scripts/spec-check: content differs},
+		'and is named' );
 
 	( $exit, $output ) = run_in($dir);
 	is( $exit, 0, 'sync repairs the drift' );
 	( $exit, $output ) = run_in( $dir, '--check' );
 	is( $exit, 0, 'and --check passes again' );
 
-	chmod 0644, "$dir/scripts/deps" or die "chmod: $!";
+	chmod 0644, "$dir/scripts/fugubench" or die "chmod: $!";
 	( $exit, $output ) = run_in( $dir, '--check' );
 	isnt( $exit, 0, 'a lost exec bit fails --check' );
-	like( $output, qr{scripts/deps: exec bit differs}, 'and is named' );
-	chmod 0755, "$dir/scripts/deps" or die "chmod: $!";
+	like( $output, qr{scripts/fugubench: exec bit differs},
+		'and is named' );
+	chmod 0755, "$dir/scripts/fugubench" or die "chmod: $!";
 
 	unlink "$dir/t/ci/workflows.t" or die "unlink: $!";
 	( $exit, $output ) = run_in( $dir, '--check' );
@@ -119,6 +133,32 @@ my $dir = consumer();
 	is( $exit, 0, 'and --check ignores it' );
 }
 
+# SYNC-KEYS-1: the org pack owns deps/KEYS.txt, and a consumer pins a
+# third-party key in deps/KEYS.local.txt. sync must not touch the
+# local file.
+{
+	my $mark  = "# the local key of the consumer\n";
+	my $local = "$dir/deps/KEYS.local.txt";
+	make_path("$dir/deps");
+	open my $fh, '>', $local or die "write: $!";
+	print $fh $mark;
+	close $fh;
+
+	my ( $exit, $output ) = run_in($dir);
+	is( $exit, 0, 'sync over a local key file works' ) or diag($output);
+
+	is(
+		_slurp("$dir/deps/KEYS.txt"),
+		_slurp("$root/org/sync/deps/KEYS.txt"),
+		'the pack owns deps/KEYS.txt'
+	);
+	is( _slurp($local), $mark,
+		'and sync does not touch deps/KEYS.local.txt' );
+
+	( $exit, $output ) = run_in( $dir, '--check' );
+	is( $exit, 0, 'and --check ignores the local key file' );
+}
+
 # A consumer that selects the org pack only gets no Perl files.
 {
 	my $org = consumer('org');
@@ -126,7 +166,7 @@ my $dir = consumer();
 	is( $exit, 0, 'sync into an org-only consumer works' )
 	    or diag($output);
 
-	ok( -f "$org/scripts/deps",       'the installer arrives' );
+	ok( -f "$org/scripts/fugubench",  'the shim arrives' );
 	ok( -f "$org/scripts/spec-check", 'the spec check arrives' );
 	ok( -f "$org/scripts/ste-lint",   'the prose lint arrives' );
 	ok( -f "$org/.gitleaks.toml", 'the gitleaks configuration arrives' );
@@ -166,9 +206,9 @@ my $dir = consumer();
 	my ( $exit, $output ) = run_in($infra);
 	is( $exit, 0, 'sync into an infra consumer works' ) or diag($output);
 
-	ok( -f "$infra/infra/CLAUDE.md", 'the infra instructions arrive' );
-	ok( -f "$infra/scripts/deps",    'the org pack arrives too' );
-	ok( !-f "$infra/scripts/dist",   'and no Perl files arrive' );
+	ok( -f "$infra/infra/CLAUDE.md",   'the infra instructions arrive' );
+	ok( -f "$infra/scripts/fugubench", 'the org pack arrives too' );
+	ok( !-f "$infra/scripts/dist",     'and no Perl files arrive' );
 
 	( $exit, $output ) = run_in( $infra, '--check' );
 	is( $exit, 0, 'a fresh infra sync passes --check' ) or diag($output);
@@ -198,7 +238,7 @@ my $dir = consumer();
 
 	ok( -f "$web/web/CLAUDE.md",        'the web instructions arrive' );
 	ok( -f "$web/web/footer.body.html", 'the shared footer arrives' );
-	ok( -f "$web/scripts/deps",         'the org pack arrives too' );
+	ok( -f "$web/scripts/fugubench",    'the org pack arrives too' );
 	ok( !-f "$web/scripts/dist",        'and no Perl files arrive' );
 
 	( $exit, $output ) = run_in( $web, '--check' );
@@ -216,8 +256,8 @@ my $dir = consumer();
 	ok( -f "$python/mk/python.mk",       'the python fragment arrives' );
 	ok( -f "$python/packages/CLAUDE.md", 'the style rules arrive' );
 	ok( -f "$python/t/ci/python.t", 'the consumer python test arrives' );
-	ok( -f "$python/scripts/deps",  'the org pack arrives too' );
-	ok( !-f "$python/scripts/dist", 'and no Perl files arrive' );
+	ok( -f "$python/scripts/fugubench", 'the org pack arrives too' );
+	ok( !-f "$python/scripts/dist",     'and no Perl files arrive' );
 
 	# MK-PYTHON-2: the consumer owns the project files, and the pack
 	# must not ship them.
@@ -238,8 +278,8 @@ my $dir = consumer();
 
 	my ( $exit, $output ) = run_in($bare);
 	is( $exit, 0, 'sync with no pack line works' ) or diag($output);
-	ok( -f "$bare/scripts/deps",  'and delivers the org pack' );
-	ok( !-f "$bare/scripts/dist", 'and only the org pack' );
+	ok( -f "$bare/scripts/fugubench", 'and delivers the org pack' );
+	ok( !-f "$bare/scripts/dist",     'and only the org pack' );
 }
 
 # An unknown pack is refused.

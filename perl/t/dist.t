@@ -29,8 +29,8 @@ sub write_file ( $path, $content )
 
 # fixture($toolingrc):
 #	A directory with a .toolingrc and a minimal source tree: two
-#	modules with sidecars, a share file, an executable, tests in
-#	two directories, and the doc files.
+#	modules with sidecars, a share file, a share-extra file, an
+#	executable, tests in two directories, and the doc files.
 sub fixture ($toolingrc)
 {
 	my $dir = tempdir( CLEANUP => 1 );
@@ -41,9 +41,9 @@ sub fixture ($toolingrc)
 	write_file( "$dir/lib/App/Fix.pm", "package App::Fix;\n1;\n" );
 	write_file( "$dir/lib/Fix/Part.pm",
 		"package Fix::Part;\n1;\npackage Fix::Part::Inner;\n1;\n" );
-	write_file( "$dir/share/fix/data", "shared\n" );
-	write_file( "$dir/scripts/ftp",    "#!/bin/sh\n" );
-	write_file( "$dir/bin/fix",        "#!/usr/bin/env perl\n" );
+	write_file( "$dir/share/fix/data",            "shared\n" );
+	write_file( "$dir/t/fix/fixtures/sheet.html", "<html>\n" );
+	write_file( "$dir/bin/fix",                   "#!/usr/bin/env perl\n" );
 	write_file( "$dir/t/fix/basic.t",
 		"use Test::More;\nok(1);\ndone_testing();\n" );
 	write_file( "$dir/t/other/extra.t",
@@ -93,14 +93,15 @@ sub slurp ($path)
 # The full shape: exe, share-extra, prereqs, one test directory.
 {
 	my $dir = fixture(<<'EOF');
-# A fixture in the shape of FuguVM.
+# A fixture in the shape of FuguVM, with the share-extra key of
+# FuguSeed.
 dist.name        App-Fix
 dist.module      App::Fix
 dist.abstract    fix things with one tool
 dist.author      Dick Olsson <hi@senzilla.io>
 dist.exe         bin/fix
 dist.testdir     t/fix
-dist.share-extra scripts/ftp
+dist.share-extra t/fix/fixtures/sheet.html
 
 # Other tools own other prefixes. This line must pass through.
 other.key        ignored
@@ -132,7 +133,7 @@ EOF
 	like( $mfpl, qr/'URI' => 0/,       'the second prereq ships' );
 	like(
 		$mfpl,
-qr{'scripts/ftp' => '\$\(INST_LIB\)/auto/share/dist/App-Fix/scripts/ftp'},
+qr{'t/fix/fixtures/sheet\.html' => '\$\(INST_LIB\)/auto/share/dist/App-Fix/t/fix/fixtures/sheet\.html'},
 		'share-extra maps into the share tree under its own path'
 	);
 	like(
@@ -234,8 +235,8 @@ EOF
 		qr{TESTS => 't/fix/\*\.t t/other/\*\.t'},
 		'every test directory joins the glob'
 	);
-	unlike( $mfpl, qr{'bin/},        'no executable ships' );
-	unlike( $mfpl, qr{'scripts/ftp}, 'no share-extra ships' );
+	unlike( $mfpl, qr{'bin/},           'no executable ships' );
+	unlike( $mfpl, qr{'t/fix/fixtures}, 'no share-extra ships' );
 	ok( !-f "$tree/bin/fix", 'the unlisted executable stays out' );
 }
 
