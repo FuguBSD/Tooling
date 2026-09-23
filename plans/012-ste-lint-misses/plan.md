@@ -11,9 +11,9 @@ plan: a class of findings with a large count is a repair list. It is never a
 reason to drop the rule.
 
 Work packages 1 to 5 land here, in that order, and each can start now. Work
-package 6 repairs the pack trees of this repository, and it waits on work
-package 1. Each repository package of work package 7 waits on work package 6 and
-on a sync of the pack.
+package 6 adds the pack trees of this repository to the walk, and it repairs
+them. It waits on work packages 1 and 3. Each repository package of work package
+7 waits on work package 6 and on a sync of the pack.
 
 - Extends: STE-RULES. The implementation adds a name exemption to STE-RULES-2,
   and it adds one rule for the label of a Latin abbreviation.
@@ -21,8 +21,12 @@ on a sync of the pack.
   reader rules. It drops the bold lead from the word count of STE-SENTENCE-6,
   and it removes the `@ABBREVIATIONS` table from STE-SENTENCE-4.
 - Extends: STE-SCOPE. The implementation adds the `--dir` option and the `.pod`
-  file to the walk. It removes `docs/` and the `spec/` subdirectory from the
-  exempt set of STE-SCOPE-2.
+  file to the walk and to the `--file` check of STE-SCOPE-5. It removes `docs/`
+  and the `spec/` subdirectory from the exempt set of STE-SCOPE-2.
+- Extends: MK-VERBS. The implementation adds `ste-lint-man` to the plain
+  targets, and it names `mandoc` as the program of the target.
+- Extends: MK-COMPOSE. The implementation adds `ste-lint-man` to the gate list
+  of MK-COMPOSE-5, and it adds `MANDOC` to the variables of `mk/org.mk`.
 
 ## Purpose
 
@@ -46,9 +50,10 @@ In scope:
   `org/sync/scripts/ste-lint`.
 - The word rule, the sentence rule, a paragraph rule, and the POD reader.
 - The scope walk, the `--dir` option, and the exempt set.
-- A manual-page target of the perl pack, and an HTML target of Website.
+- A manual-page target of the org pack, and an HTML target of Website.
 - The prose repair of the twelve projects, the workspace, and the library.
-- The units STE-SCOPE, STE-RULES and STE-SENTENCE, and `perl/t/ste-lint.t`.
+- The units STE-SCOPE, STE-RULES, STE-SENTENCE, MK-VERBS and MK-COMPOSE, and the
+  tests `perl/t/ste-lint.t` and `perl/t/man-lint.t`.
 
 Out of scope:
 
@@ -175,7 +180,7 @@ and the count drops the lead.
 
 **One tool reads prose.** POD is prose with a directive line, a verbatim block,
 and a formatting code, and the reader gains those three marks. A manual page
-renders through `mandoc`, and a make target of the perl pack feeds the lint. An
+renders through `mandoc`, and a make target of the org pack feeds the lint. An
 HTML body renders through a tag strip, and a make target of Website feeds the
 lint. The lint itself reads Markdown and POD, and nothing else.
 
@@ -185,27 +190,43 @@ lint. The lint itself reads Markdown and POD, and nothing else.
 
 The lint gains one option. `--dir DIR` adds one directory tree to the scope
 walk, and it can repeat. The walk reads each `.md` file and each `.pod` file.
-`--file` still skips the walk.
+`--file` still skips the walk. It accepts a `.md` path and a `.pod` path, and it
+rejects any other path before the first finding.
 
 The exempt set shrinks. The walk reads `docs/` and each `spec/` subdirectory. A
 root scratch file with a `SCRATCHPAD` name prefix and `.claude/worktrees/` stay
 exempt.
 
-The lint reads a `.pod` file. A line that starts with `=` ends a block and holds
-no prose. A formatting code such as `C<...>`, `F<...>`, `L<...>`, `B<...>` or
-`I<...>` becomes one placeholder word. An indented block is free of prose, as
+The lint reads a `.pod` file. A directive line starts with `=`. It ends a block,
+and the lint drops it. The lint skips the text from a `=begin` line to its
+`=end` line. It also skips a `=for` line and the paragraph that follows it. A
+`=cut` line closes the POD, and the lint skips the text after it until the next
+directive line. A formatting code such as `C<...>`, `F<...>`, `L<...>`, `B<...>`
+or `I<...>` becomes one placeholder word. An indented block is free of prose, as
 STE-SENTENCE-3 says.
 
 The finding format of STE-RULES-3 holds. A paragraph finding names the rule
 `paragraph length`, the sentence count, and the greatest correct count.
 
 `mk/local.mk` of this repository sets
-`STE_LINT = org/sync/scripts/ste-lint --root . $(SYNC_DIRS)`, and `SYNC_DIRS`
-holds one `--dir` for each `*/sync` tree.
+`STE_LINT = org/sync/scripts/ste-lint --root . $(SYNC_DIRS)`. `SYNC_DIRS` lists
+one `--dir` for each of the five pack trees, `infra/sync`, `org/sync`,
+`perl/sync`, `python/sync` and `web/sync`. The list is explicit, because
+MK-SUBSET-2 bans a GNU function in the file. A new pack adds one entry.
 
-The perl pack gains the target `ste-lint-man`. It renders each manual page with
+The org pack gains the target `ste-lint-man`. It lists each `*.[1-9]` page that
+`git ls-files` reports, in any directory. It renders each page with
 `mandoc -T markdown` into `blib/man-md/`, strips the SYNOPSIS section, and runs
-`ste-lint --file` over the result. `make check` of a perl consumer runs it.
+`ste-lint --file` over the result. With no page, it renders nothing and passes.
+Without `mandoc`, it dies with the program name. `make check` of every consumer
+runs it. `MANDOC` names the program, with the default `mandoc`.
+
+`mandoc` comes from the deps manifest. A repository that holds a page names
+`tool pkg mandoc` in `deps/Linux.txt`. `make deps` then installs it, per
+MK-DEPS-4. macOS and OpenBSD ship `mandoc` in the base system. Their manifests
+stay. The check workflow of such a repository runs `make deps` before
+`make ste-lint-man`, as the gitleaks job does. This repository also names it,
+because `perl/t/man-lint.t` renders a fixture page.
 
 Website gains the target `ste-lint-html`. It strips the tags of each body file
 into `build/html-md/`, and it runs `ste-lint --file` over the result.
@@ -224,13 +245,18 @@ exists after the rule merges.
   a block, and one dash after it."
 - A change of STE-SENTENCE-4: the sentence about the `@ABBREVIATIONS` table
   leaves the rule.
-- A rule of STE-SENTENCE: "A POD directive line ends a block and holds no
-  sentence. The lint must replace each POD formatting code with one placeholder
-  word."
+- A rule of STE-SENTENCE: "A POD directive line ends a block. The lint must skip
+  the directive line. It must skip the text from a `=begin` line to its `=end`
+  line, and a `=for` line with its paragraph. It must skip the text after a
+  `=cut` line, up to the next directive line. It must replace each POD
+  formatting code with one placeholder word."
 - A rule of STE-SCOPE: "The `--dir DIR` option must add one directory tree to
   the scope walk, and it can repeat."
 - A change of STE-SCOPE-1: "The lint must scan each `.md` file and each `.pod`
   file of the walk."
+- A change of STE-SCOPE-5: "The `--file` path must name a readable `.md` file or
+  a readable `.pod` file. The lint must reject any other path before it reports
+  the first finding."
 - A change of STE-SCOPE-2: `docs/` and the `spec/` subdirectory leave the exempt
   set.
 
@@ -343,41 +369,60 @@ The package can start now.
    `.claude`, `lib`, `plans` and `t`. A value without a directory dies before
    the first finding, as STE-SCOPE-5 does for a file.
 2. Remove `docs/` and the `spec/` subdirectory from the exempt set of `_files`.
-3. Add `.pod` to the file filter of the walk.
+3. Add `.pod` to the file filter of the walk and to the target check of
+   `--file`. The check dies with `not a Markdown file` today. After the change
+   it accepts a `.md` path and a `.pod` path, and it rejects any other path.
 4. Add the POD reader to `_blocks` and `_line_findings`. A line that starts with
-   `=` ends the block, and it is free of prose. A formatting code `[A-Z]<...>`,
-   with one nesting level and the `<<...>>` form, becomes the word `code`.
-5. Set `SYNC_DIRS` in `mk/local.mk` from `$(wildcard */sync)`, and add it to
-   `STE_LINT`.
-6. Change STE-SCOPE-1 and STE-SCOPE-2, add the `--dir` rule and the POD rule,
-   and add the tests.
+   `=` ends the block, and the reader drops it. The reader skips the text from a
+   `=begin` line to its `=end` line. It skips a `=for` line with its paragraph.
+   It skips the text after a `=cut` line, up to the next directive line. A
+   formatting code `[A-Z]<...>`, with one nesting level and the `<<...>>` form,
+   becomes the word `code`.
+5. Change STE-SCOPE-1, STE-SCOPE-2 and STE-SCOPE-5, add the `--dir` rule and the
+   POD rule, and add the tests.
 
 Acceptance:
 
-- `make check` passes, and it reports the `*/sync` trees.
+- `make check` passes.
 - A banned word under `docs/` and under `spec/protocol/` fails.
 - A banned word under `extra/` fails with `--dir extra`, and passes without it.
-- `lib/Example.pod` with a 30-word sentence fails, and the same text under a
-  `=begin` block passes. `The C<open> call returns a handle.` counts five words.
+- `--file lib/Example.pod` scans the file, and `--file README.txt` dies before a
+  finding.
+- `lib/Example.pod` with a 30-word sentence fails. The same text passes between
+  `=begin` and `=end`, after a `=for` line, and after `=cut`.
+  `The C<open> call returns a handle.` counts five words.
 
-### WP4 — The perl pack lints the manual pages
+### WP4 — The org pack lints the manual pages
 
-The package can start now. It waits on nothing, and the perl consumers take it
-with their sync.
+The package can start now. It waits on nothing. Every consumer takes it with its
+sync.
 
-1. Add the target `ste-lint-man` to `perl/sync/mk/perl.mk`. For each page under
-   `man/`, run `mandoc -T markdown`, drop the lines from the `# SYNOPSIS`
-   heading to the next heading, and write `blib/man-md/<page>.md`.
+1. Add the target `ste-lint-man` to `org/sync/mk/org.mk`, with the variable
+   `MANDOC ?= mandoc`. List each page with `git ls-files '*.[1-9]'`. FuguOracle
+   holds its pages at the root, FuguPass under `src/*/`, and the perl projects
+   under `man/`. For each page, run `$(MANDOC) -T markdown`, drop the lines from
+   the `# SYNOPSIS` heading to the next heading, and write
+   `blib/man-md/<page>.md`.
 2. Run `$(STE_LINT) --file` over the written files, and add the target to
-   `CHECK_TARGETS`.
+   `CHECK_TARGETS` of `mk/org.mk`. With no page, the target writes nothing and
+   passes. Without `mandoc`, the target fails with the program name.
 3. Add `perl/t/man-lint.t`. It renders a fixture page with a 30-word sentence in
    DESCRIPTION and a 61-word SYNOPSIS, and it asserts one finding.
-4. Document the target in `spec/make.md`, beside the other perl targets.
+4. Name `tool pkg mandoc` in `deps/Linux.txt` of this repository, because the
+   test renders a page. macOS and OpenBSD ship `mandoc` in the base system, and
+   `deps/Darwin.txt` stays. The `test` job installs the `tool` environment
+   through `make deps-test`, per MK-DEPS-2.
+5. Document the target in `spec/make.md`. Add `ste-lint-man` to the plain-target
+   list of MK-VERBS and to the gate list of MK-COMPOSE-5. Add `MANDOC` to the
+   variables of `mk/org.mk` under MK-COMPOSE. State that a repository with a
+   page names `tool pkg mandoc` in `deps/Linux.txt`, per MK-DEPS-4.
 
 Acceptance:
 
 - `make check` passes here, and `perl/t/man-lint.t` fails against `main`.
 - On a host without `mandoc`, the target dies with the program name.
+- `make deps` installs `mandoc` on Linux, and the target passes after it.
+- A consumer without a page passes the target without `mandoc`.
 
 ### WP5 — Website lints its HTML bodies
 
@@ -396,23 +441,26 @@ Acceptance:
 - `make check` of Website runs the target.
 - A body file with a banned word fails the target.
 
-### WP6 — The pack trees repair their prose
+### WP6 — The pack trees join the walk and repair their prose
 
-The package waits on work package 1. The 56 findings of the `*/sync` trees
-surface in every consumer. The fix is one commit here.
+The package waits on work packages 1 and 3. The 56 findings of the `*/sync`
+trees surface in every consumer. The fix is one commit here.
 
-1. Run `make check` with the new lint, and list each finding of a `*/sync` tree.
-2. Repair each one, per the Repair rules section. The plan vocabulary of
+1. Set `SYNC_DIRS` in `mk/local.mk` to one `--dir` for each pack tree of the
+   contract. Add it to `STE_LINT`.
+2. Run `make check` with the hook, and list each finding of a `*/sync` tree.
+3. Repair each one, per the Repair rules section. The plan vocabulary of
    `org/sync/plans/CLAUDE.md` changes `lands` to `merges`.
-3. Repair the ten-sentence block of
+4. Repair the ten-sentence block of
    `org/sync/.claude/skills/review-panel/SKILL.md`, the ten-sentence block of
    `perl/sync/lib/CLAUDE.md`, and the eight-sentence block of
    `org/sync/spec/CLAUDE.md`. Prefer a removal.
-4. Commit, and merge with `merge-it`.
+5. Commit, and merge with `merge-it`.
 
 Acceptance:
 
-- `make check` passes here.
+- `make check` passes here, with the five `*/sync` trees in the walk.
+- A banned word under `org/sync/` fails `make check`.
 - After a sync, every pack file of a consumer passes the lint.
 
 ### WP7 — Each repository repairs its prose
@@ -439,23 +487,31 @@ small consumer proves the rollout before a large repair starts.
 |    13 | FuguPass     |   300 |          247 |   0 |      4 pages |
 |    14 | FuguTTX      |   302 |         1584 |   0 |            0 |
 
+The `ste-lint-man` target of the org pack reaches each page of the table,
+because it lists the pages with `git ls-files`. The root pages of FuguOracle and
+the `src/*/` pages of FuguPass count with the `man/` pages of the perl projects.
+
 The steps of one package:
 
 1. Sync the pack, and run `make check </dev/null`.
-2. List each finding, grouped by rule.
-3. Repair each finding, per the Repair rules section. Repair the pack-owned
+2. In a repository with a page, name `tool pkg mandoc` in `deps/Linux.txt`, and
+   run `make deps`. Add `make deps` before `make ste-lint-man` in the check
+   workflow, as the gitleaks job does.
+3. List each finding, grouped by rule.
+4. Repair each finding, per the Repair rules section. Repair the pack-owned
    copies by a sync, never by hand.
-4. Run `make check` again, and read each changed rule sentence against its code.
+5. Run `make check` again, and read each changed rule sentence against its code.
    A repair that changes a requirement is a defect.
-5. Commit in groups. Give the specification, the plans, the instruction files,
+6. Commit in groups. Give the specification, the plans, the instruction files,
    the POD, and the manual pages one commit each.
-6. Merge with `merge-it`. A repair is a patch-level change.
-7. Trim the row of this table in the same change, per `plans/CLAUDE.md`.
+7. Merge with `merge-it`. A repair is a patch-level change.
+8. Trim the row of this table in the same change, per `plans/CLAUDE.md`.
 
 Acceptance, for each repository:
 
 - `make check` passes with the synced pack.
-- `git diff --stat main` names prose files alone, and no test changes.
+- `git diff --stat main` names prose files alone, and no test changes. The deps
+  manifest and the check workflow of a repository with a page are the exception.
 - The register `spec/STATUS.md` holds the same states before and after.
 
 The library has no lint gate, per FuguBSD LIB-LIBRARY-5. Its package runs the
@@ -526,8 +582,11 @@ fail against the script of `main`. The tests must assert:
   one-sentence items passes.
 - A banned word under `docs/` and under `spec/protocol/` fails.
 - `--dir extra` scans the tree, and `--dir missing` dies before a finding.
-- A `.pod` file fails on a long sentence, passes on a directive line, and counts
-  a formatting code as one word.
+- `--file lib/Example.pod` scans the file, and `--file README.txt` dies before a
+  finding.
+- A `.pod` file fails on a long sentence, and it counts a formatting code as one
+  word. The same sentence passes on a directive line, between `=begin` and
+  `=end`, after a `=for` line, and after `=cut`.
 
 ## What this repository cannot prove
 
@@ -551,7 +610,7 @@ reports the finding here, with the sentence that the rule hit. The rule then
 gains an exclusion with a test, or the word leaves the table under STE-RULES-4.
 
 A repair commit of work package 7 reverts on its own. The commit groups of step
-5 keep a revert small.
+6 keep a revert small.
 
 ## Open questions
 
