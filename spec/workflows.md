@@ -142,8 +142,10 @@ formula current, so no hand touches a formula after a release.
 - **WFL-BREW-5** — The action must push one commit to `main` of the tap, and the
   subject must be `feat(<name>): <tag>`. The push must use the deploy key of the
   tap, which the `release` environment holds as `HOMEBREW_TAP_KEY`.
-- **WFL-BREW-6** — Each caller value reaches the action through `env:` with the
-  `BUMP_` prefix, per WFL-ACTIONS-9.
+- **WFL-BREW-6** — The workflow step must pass each caller value to the action
+  as a `with:` input, as the `gh-release` step does. Inside the action, an
+  `env:` block must bind each value that the script step reads to a `BUMP_`
+  environment variable, per WFL-ACTIONS-9.
 
 <a id="wfl-web"></a>
 

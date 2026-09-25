@@ -71,7 +71,7 @@ later `git push` of the same checkout.
 
 **No project fact in a shared file.** D-02 and D-14 keep the formula name out of
 the workflow text. The formula name is the repository name in lower case, so the
-workflow derives it from `github.repository`, and no caller gains an input. The
+action derives it from `github.repository`, and no caller gains an input. The
 distribution name comes from the `dist` input that every caller sets today.
 
 **The version lives in the file name.** The release publishes
@@ -100,19 +100,24 @@ of the tap red, and the failure names the formula.
 
 The action `actions/brew-bump/action.yml` is composite. Its inputs are:
 
-| Input     | Meaning                                                |
-| --------- | ------------------------------------------------------ |
-| `key`     | The private deploy key of the tap                      |
-| `formula` | The formula name, for example `fuguvm`                 |
-| `url`     | The URL of the versioned tarball of the GitHub release |
-| `file`    | The path of the built tarball, under `build/`          |
-| `tag`     | The release tag, for the commit subject                |
+| Input        | Meaning                                                |
+| ------------ | ------------------------------------------------------ |
+| `key`        | The private deploy key of the tap                      |
+| `repository` | The repository of the caller, `github.repository`      |
+| `url`        | The URL of the versioned tarball of the GitHub release |
+| `file`       | The path of the built tarball, under `build/`          |
+| `tag`        | The release tag, for the commit subject                |
 
-The action checks out `FuguBSD/homebrew-tap` into `tap/` with the key, and it
-computes the SHA-256 digest of `file`. It runs `bump` on
-`tap/Formula/<formula>.rb` with the URL and the digest. It then commits as
-`github-actions[bot]` with the subject `feat(<formula>): <tag>`, and pushes
-`main`. Each input reaches a script as a `BUMP_*` variable.
+The action checks out `FuguBSD/homebrew-tap` into `tap/` with
+`actions/checkout`, and the `ssh-key` input of the checkout reads `key`. One
+script step does the rest. Its `env:` block binds `repository`, `url`, `file`
+and `tag` to `BUMP_REPOSITORY`, `BUMP_URL`, `BUMP_FILE` and `BUMP_TAG`, per
+WFL-BREW-6. A `with:` expression cannot lower-case, so the step derives the
+formula name in shell. It takes the part of `BUMP_REPOSITORY` after the slash,
+in lower case, with `tr`. It computes the SHA-256 digest of `file`, and it runs
+`bump` on `tap/Formula/<name>.rb` with the URL and the digest. It then commits
+as `github-actions[bot]` with the subject `feat(<name>): <tag>`, and pushes
+`main`.
 
 The script `actions/brew-bump/bump` takes three arguments: the formula path, the
 URL and the digest. It replaces the value of the `url` line and of the `sha256`
@@ -122,10 +127,11 @@ standard error, and it exits 1. It is Perl v5.34 with core modules alone, as
 SYNC-BOOTSTRAP-1 asks of a synced script.
 
 The last step of `perl-release.yml` calls
-`FuguBSD/Tooling/actions/brew-bump@main` with:
+`FuguBSD/Tooling/actions/brew-bump@main` with these `with:` inputs, as the
+`gh-release` step does:
 
 - `key`: `${{ secrets.HOMEBREW_TAP_KEY }}`, from the `release` environment.
-- `formula`: the part of `github.repository` after the slash, in lower case.
+- `repository`: `${{ github.repository }}`.
 - `url`:
   `https://github.com/<repository>/releases/download/<tag>/<dist>-<version>.tar.gz`.
 - `file`: `build/<dist>-<version>.tar.gz`, the tarball of the build step.
@@ -198,9 +204,13 @@ selected-repository list of any releng secret.
 
 Here:
 
-1. Add `actions/brew-bump/action.yml` and `actions/brew-bump/bump`.
-2. Add the last step to `perl-release.yml`, after the PAUSE step.
-3. Add `perl/t/brew-bump.t`, and extend `perl/t/perl-release.t`.
+1. Add `actions/brew-bump/action.yml` and `actions/brew-bump/bump`, per the
+   interface contract. The `env:` block of the script step binds the `BUMP_*`
+   variables.
+2. Add the last step to `perl-release.yml`, after the PAUSE step, with the
+   `with:` inputs of the contract.
+3. Add `perl/t/brew-bump.t` and `perl/t/brew-bump-action.t`, and extend
+   `perl/t/perl-release.t`.
 4. Set WFL-BREW to `done` in `spec/STATUS.md`, and delete this plan.
 
 The change is minor-level, so it merges through `pull-it` and the review panel.
@@ -216,6 +226,18 @@ directory, with no network:
 - An absent formula, an absent `url` line, and an absent `sha256` line each exit
   1, and the message names the path.
 - A success prints nothing.
+
+`perl/t/brew-bump-action.t` reads `actions/brew-bump/action.yml` as text, as
+`perl/t/setup-perl.t` reads the `setup-perl` action, and guards:
+
+- The checkout step names `FuguBSD/homebrew-tap`, and its `ssh-key` input reads
+  `inputs.key`.
+- The `env:` block of the script step binds `repository`, `url`, `file` and
+  `tag` to `BUMP_REPOSITORY`, `BUMP_URL`, `BUMP_FILE` and `BUMP_TAG`.
+- The script derives the formula name with `tr`, and the formula path is
+  `Formula/<name>.rb`.
+- The commit subject is `feat(<name>): <tag>`.
+- The push goes to `main`.
 
 `perl/t/perl-release.t` gains one subtest:
 
