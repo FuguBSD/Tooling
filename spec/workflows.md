@@ -1,8 +1,9 @@
 # Actions and reusable workflows
 
 This document specifies the CI building blocks that every FuguBSD repository
-shares. It covers the action policy, the reusable workflows, the web publish
-workflow, the setup-perl cache, the setup-uv cache, and the gitleaks gate.
+shares. It covers the action policy, the reusable workflows, and the web publish
+workflow. It also covers the Homebrew bump, the setup-perl cache, the setup-uv
+cache, and the gitleaks gate.
 
 <a id="wfl-actions"></a>
 
@@ -118,6 +119,31 @@ organization.
   reaches the environment of any step.
 - **WFL-SIGN-17** — The workflow must refuse an asset name that the `assets`
   input holds twice. `gh release create` refuses a second upload of one name.
+
+<a id="wfl-brew"></a>
+
+## The Homebrew bump
+
+The organization keeps one Homebrew tap, `FuguBSD/homebrew-tap`, with one
+formula per repository that releases. The Perl release workflow keeps each
+formula current, so no hand touches a formula after a release.
+
+- **WFL-BREW-1** — The Perl release workflow must bump the formula of the caller
+  in the tap through the `brew-bump` action of this repository. The step must
+  run last, after the GitHub release and the PAUSE upload.
+- **WFL-BREW-2** — The formula name must be the repository name of the caller in
+  lower case, and the formula path must be `Formula/<name>.rb`.
+- **WFL-BREW-3** — The action must set the `url` line to the versioned tarball
+  of the GitHub release. It must set the `sha256` line to the digest of the
+  tarball that the workflow built. It must change no other line.
+- **WFL-BREW-4** — The action must fail when the formula is absent, or when the
+  `url` line or the `sha256` line is absent. The failure must name the formula
+  path, the URL and the digest, so the operator can repair the formula by hand.
+- **WFL-BREW-5** — The action must push one commit to `main` of the tap, and the
+  subject must be `feat(<name>): <tag>`. The push must use the deploy key of the
+  tap, which the `release` environment holds as `HOMEBREW_TAP_KEY`.
+- **WFL-BREW-6** — Each caller value reaches the action through `env:` with the
+  `BUMP_` prefix, per WFL-ACTIONS-9.
 
 <a id="wfl-web"></a>
 
