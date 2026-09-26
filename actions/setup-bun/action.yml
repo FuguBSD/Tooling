@@ -12,17 +12,31 @@ inputs:
 runs:
   using: composite
   steps:
-    # A pinned release zip, not a third-party action. CI uses no
-    # third-party action, and t/ci/workflows.t enforces it. bunx is
-    # a symlink to bun, as the upstream installer makes it.
+    # The step maps the runner platform to a bun archive, and it
+    # installs the pinned release zip. No third-party action: CI uses
+    # none, and t/ci/workflows.t enforces it. bunx is a symlink to
+    # bun, as the upstream installer makes it.
     - name: Install bun
       shell: bash
+      env:
+        BUN_VERSION: ${{ inputs.version }}
       run: |
+        platform="$(uname -s)/$(uname -m)"
+        case "$platform" in
+          Linux/x86_64) archive=bun-linux-x64 ;;
+          Linux/aarch64 | Linux/arm64) archive=bun-linux-aarch64 ;;
+          Darwin/x86_64) archive=bun-darwin-x64 ;;
+          Darwin/arm64 | Darwin/aarch64) archive=bun-darwin-aarch64 ;;
+          *)
+            echo "setup-bun: no bun release for $platform" >&2
+            exit 1
+            ;;
+        esac
         mkdir -p "$HOME/.local/bin"
         curl -LsSf \
-          "https://github.com/oven-sh/bun/releases/download/bun-v${{ inputs.version }}/bun-linux-x64.zip" \
+          "https://github.com/oven-sh/bun/releases/download/bun-v$BUN_VERSION/$archive.zip" \
           -o /tmp/bun.zip
         unzip -q -o /tmp/bun.zip -d /tmp
-        install -m 755 /tmp/bun-linux-x64/bun "$HOME/.local/bin/bun"
+        install -m 755 "/tmp/$archive/bun" "$HOME/.local/bin/bun"
         ln -sf bun "$HOME/.local/bin/bunx"
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
