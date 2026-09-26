@@ -444,4 +444,69 @@ subtest 'the install runs beside no key' => sub {
 	unlike( $SIGN, qr/apt-get/, 'and the signing step installs nothing' );
 };
 
+subtest 'the release bumps the Homebrew formula last' => sub {
+	my $bump = _step( $yml, 'Bump the Homebrew formula' );
+	ok( $bump, 'the bump step is there' ) or return;
+
+	# The step runs last, so a failure leaves the GitHub release
+	# and the PAUSE upload complete. WFL-BREW-1 states the order.
+	my $at = index $yml, '- name: Bump the Homebrew formula';
+	unlike(
+		substr( $yml, $at + 1 ),
+		qr/^ {6}- name: /m,
+		'and no step follows it'
+	);
+	like(
+		$bump,
+		qr{^\s+uses: FuguBSD/Tooling/actions/brew-bump\@main$}m,
+		'it uses the brew-bump action'
+	);
+
+	# Every caller holds a formula, so the bump runs on every
+	# release.
+	unlike( $bump, qr/^\s+if:/m, 'and it runs on every release' );
+
+	# WFL-BREW-6: each caller value is a with: input, and the key
+	# comes from the release environment.
+	like( $bump, qr/^\s+key:\s*\$\{\{\s*secrets\.HOMEBREW_TAP_KEY\s*\}\}$/m,
+		'the key input reads the deploy key of the release environment'
+	);
+	like(
+		$bump,
+		qr/^\s+repository:\s*\$\{\{\s*github\.repository\s*\}\}$/m,
+		'the repository input reads the caller'
+	);
+
+	# The version lives in the file name, so the URL and the file
+	# both name the versioned tarball. prettier folds the URL over
+	# lines, inside an expression, and YAML joins the lines with a
+	# space. Each space in the pattern is therefore \s+.
+	my $versioned = qr{
+		\$\{\{ \s+ inputs\.dist \s+ \}\}
+		-\$\{\{ \s+ steps\.version\.outputs\.version \s+ \}\}
+		\.tar\.gz
+	}x;
+	like(
+		$bump,
+		qr{
+			^ \s+ url: \s+ https://github\.com/
+			\$\{\{ \s+ github\.repository \s+ \}\}
+			/releases/download/
+			\$\{\{ \s+ steps\.version\.outputs\.tag \s+ \}\}
+			/$versioned$
+		}xm,
+		'the url input names the versioned tarball of the release'
+	);
+	like(
+		$bump,
+		qr{^\s+file:\s*build/$versioned$}m,
+		'and the file input names the same tarball under build/'
+	);
+	like(
+		$bump,
+		qr/^\s+tag:\s*\$\{\{\s*steps\.version\.outputs\.tag\s*\}\}$/m,
+		'and the tag input reads the tag of the version step'
+	);
+};
+
 done_testing();

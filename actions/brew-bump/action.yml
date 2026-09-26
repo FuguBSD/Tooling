@@ -1,0 +1,68 @@
+name: "Bump the Homebrew formula"
+description:
+  "Set the url line and the sha256 line of the formula of the caller in the
+  FuguBSD tap, and push the commit"
+
+# This is a canonical action of the FuguBSD repositories, shared like
+# gh-release. The Perl release workflow calls it as the last step of
+# the release job, as FuguBSD/Tooling/actions/brew-bump@main.
+#
+# The tap holds one formula per release repository, and this action
+# keeps that formula at the release of the caller (WFL-BREW). The
+# formula name is the repository name in lower case. The script bump
+# beside this file changes the two lines, so no third-party action
+# runs.
+
+inputs:
+  key:
+    description: "The private deploy key of the tap"
+    required: true
+  repository:
+    description: "The repository of the caller, github.repository"
+    required: true
+  url:
+    description: "The URL of the versioned tarball of the GitHub release"
+    required: true
+  file:
+    description: "The path of the built tarball, under build/"
+    required: true
+  tag:
+    description: "The release tag, for the commit subject"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    # The checkout configures the key for the later push of the same
+    # checkout.
+    - name: Checkout the tap
+      uses: actions/checkout@v4
+      with:
+        repository: FuguBSD/homebrew-tap
+        path: tap
+        ssh-key: ${{ inputs.key }}
+
+    # Each value reaches the script through the environment, under a
+    # BUMP_ name (WFL-BREW-6, WFL-ACTIONS-9). A with: expression
+    # cannot lower-case, so the shell derives the formula name.
+    #
+    # The step runs last in the release job, so a failure leaves the
+    # GitHub release complete. The operator then writes the two lines
+    # by hand, from the message that bump prints.
+    - name: Bump the formula
+      shell: bash
+      env:
+        BUMP_REPOSITORY: ${{ inputs.repository }}
+        BUMP_URL: ${{ inputs.url }}
+        BUMP_FILE: ${{ inputs.file }}
+        BUMP_TAG: ${{ inputs.tag }}
+      run: |
+        name=$(printf '%s\n' "${BUMP_REPOSITORY#*/}" | tr 'A-Z' 'a-z')
+        formula="tap/Formula/$name.rb"
+        digest=$(sha256sum "$BUMP_FILE" | cut -d' ' -f1)
+        perl "$GITHUB_ACTION_PATH/bump" "$formula" "$BUMP_URL" "$digest"
+        git -C tap \
+          -c user.name='github-actions[bot]' \
+          -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+          commit -am "feat($name): $BUMP_TAG"
+        git -C tap push origin HEAD:main
