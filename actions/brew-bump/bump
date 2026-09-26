@@ -1,0 +1,83 @@
+#!/usr/bin/env perl
+# ex:ts=8 sw=4:
+#
+# $OpenBSD$
+#
+# Copyright (c) 2026 Dick Olsson <hi@senzilla.io>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+# bump: set the url line and the sha256 line of a Homebrew formula.
+#
+# usage: bump <formula> <url> <digest>
+#
+# The brew-bump action runs this script once per release, on the
+# formula of the caller in the tap (WFL-BREW). A formula-level line
+# starts at two spaces. A resource block indents its own url and
+# sha256 lines deeper, and the script leaves those alone. It changes
+# the value of the two formula-level lines and no other byte, and it
+# writes the file only when it found each line once.
+#
+# On success the script prints nothing. On failure it prints one
+# message that names the fault, the formula path, the URL and the
+# digest, and it exits 1. The operator writes the two lines by hand
+# from that message (WFL-BREW-4).
+#
+# This script is bootstrap tooling: core modules only, and v5.34
+# because macOS still ships perl 5.34 (SYNC-BOOTSTRAP-1).
+
+use v5.34;
+use warnings;
+use experimental 'signatures';
+
+if ( @ARGV != 3 ) {
+	say STDERR 'usage: bump <formula> <url> <digest>';
+	exit 2;
+}
+my ( $formula, $url, $digest ) = @ARGV;
+
+# _fail($what):
+#	Print the one failure message, and exit 1.
+sub _fail ($what)
+{
+	say STDERR "bump: $formula: $what; url \"$url\", sha256 \"$digest\"";
+	exit 1;
+}
+
+# _once($name, $count):
+#	Nothing when the script found the line once, else the fault.
+sub _once ( $name, $count )
+{
+	return                 if $count == 1;
+	return "no $name line" if $count == 0;
+	return "$count $name lines";
+}
+
+open my $in, '<:raw', $formula or _fail("cannot read: $!");
+my @lines = <$in>;
+close $in;
+
+# The anchor takes the two leading spaces of a formula-level line,
+# so a deeper resource line stays as it is. The value between the
+# quotes changes, and the rest of the line stays.
+my ( $urls, $digests ) = ( 0, 0 );
+for (@lines) {
+	$urls    += s/^(  url ")[^"]*"/$1$url"/;
+	$digests += s/^(  sha256 ")[^"]*"/$1$digest"/;
+}
+my $fault = _once( 'url', $urls ) // _once( 'sha256', $digests );
+_fail($fault) if defined $fault;
+
+open my $out, '>:raw', $formula or _fail("cannot write: $!");
+print $out @lines;
+close $out or _fail("cannot write: $!");

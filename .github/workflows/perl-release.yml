@@ -15,7 +15,8 @@ name: "Perl: Release"
 # push, as before.
 #
 # The job binds the caller's `release` environment, which holds the
-# PAUSE_USERNAME and PAUSE_PASSWORD secrets. The caller must pass
+# PAUSE_USERNAME and PAUSE_PASSWORD secrets. It also holds
+# HOMEBREW_TAP_KEY, the deploy key of the tap. The caller must pass
 # `secrets: inherit` and must keep `permissions: contents: write`.
 # The PAUSE upload only runs when the caller sets `pause: true`.
 
@@ -334,3 +335,19 @@ jobs:
             build/${{ inputs.dist }}-${{ steps.version.outputs.version }}.tar.gz
           username: ${{ secrets.PAUSE_USERNAME }}
           password: ${{ secrets.PAUSE_PASSWORD }}
+
+      # The tap holds one formula per release repository, and this
+      # step keeps it at this release. It runs last, so a failure
+      # leaves the GitHub release and the PAUSE upload complete.
+      - name: Bump the Homebrew formula
+        uses: FuguBSD/Tooling/actions/brew-bump@main
+        with:
+          key: ${{ secrets.HOMEBREW_TAP_KEY }}
+          repository: ${{ github.repository }}
+          url:
+            https://github.com/${{ github.repository }}/releases/download/${{
+            steps.version.outputs.tag }}/${{ inputs.dist }}-${{
+            steps.version.outputs.version }}.tar.gz
+          file:
+            build/${{ inputs.dist }}-${{ steps.version.outputs.version }}.tar.gz
+          tag: ${{ steps.version.outputs.tag }}
