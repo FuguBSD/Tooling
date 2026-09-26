@@ -43,6 +43,7 @@ sub fixture ($toolingrc)
 		"package Fix::Part;\n1;\npackage Fix::Part::Inner;\n1;\n" );
 	write_file( "$dir/share/fix/data",            "shared\n" );
 	write_file( "$dir/t/fix/fixtures/sheet.html", "<html>\n" );
+	write_file( "$dir/t/fix/basic.msg",           "a fixture\n" );
 	write_file( "$dir/bin/fix",                   "#!/usr/bin/env perl\n" );
 	write_file( "$dir/t/fix/basic.t",
 		"use Test::More;\nok(1);\ndone_testing();\n" );
@@ -210,6 +211,11 @@ qr{'share/fix/data' => '\$\(INST_LIB\)/auto/share/dist/App-Fix/fix/data'},
 		[ sort @files ],
 		'the MANIFEST matches the tree exactly'
 	);
+	is(
+		scalar( grep { $_ eq 't/fix/fixtures/sheet.html' } @manifest ),
+		1,
+		'a share-extra under a test directory lists once'
+	);
 }
 
 # The lean shape: no exe, no share-extra, no prereqs, two test
@@ -237,7 +243,8 @@ EOF
 	);
 	unlike( $mfpl, qr{'bin/},           'no executable ships' );
 	unlike( $mfpl, qr{'t/fix/fixtures}, 'no share-extra ships' );
-	ok( !-f "$tree/bin/fix", 'the unlisted executable stays out' );
+	ok( !-f "$tree/bin/fix",        'the unlisted executable stays out' );
+	ok( -f "$tree/t/fix/basic.msg", 'a fixture beside its test ships' );
 }
 
 # An untagged tree defaults to 0.0.0.
