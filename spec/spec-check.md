@@ -60,7 +60,7 @@ document states what the check rejects.
 
 ## Units and rules
 
-- **SPC-UNITS-1** — Each unit anchor must sit in the document of its code, and
+- **SPC-UNITS-1** — Each unit anchor must sit in a document of its code, and
   each unit anchor must be unique. An anchor that starts with no document code
   is not a unit anchor.
 - **SPC-UNITS-2** — Each rule definition must sit in the document of its unit,
